@@ -1,22 +1,40 @@
-import React from "react";
-import Button from "./components/Button";
-import Counter from "./components/Counter";
-import Form from "./components/Form";
-
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ClientDashboard from './pages/ClientDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Statistics from './pages/Statistics';
+import Labs from './pages/Labs';
+import Settings from './pages/Settings';
+import { GlobalProvider } from "./context/GlobalContext";
+import UsersPage from "./pages/UsersPage";
+import './App.css';
 
 function App() {
- return (
-   <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-     <h1 className="text-4xl font-bold text-blue-600 mb-4">
-       Bienvenue sur React + Tailwind v3.4 !
-     </h1>
-     <p className="mb-4">Votre projet React est prêt !</p>
-     <Button className="bg-red-500" text="Cliquer ici" onClick={() => alert("Bouton cliqué !")} />
-     <Button className="bg-green-500" text="Bouton secondaire" onClick={() => alert("Bouton secondaire cliqué !")}  />
- <Counter />
- <Form />
-   </div>
- );
+  return (
+    <GlobalProvider>
+      <Router>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/dashboard" element={<ClientDashboard />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/statistics" element={<Statistics />} />
+            <Route path="/labs" element={<Labs />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<UsersPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </Router>
+    </GlobalProvider>
+  );
 }
 
 export default App;
