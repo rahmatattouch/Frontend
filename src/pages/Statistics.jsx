@@ -1,113 +1,210 @@
-// src/pages/Statistics.jsx
-import React from "react";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { useGlobal } from "../context/GlobalContext";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from "chart.js";
-import { Line, Bar } from "react-chartjs-2";
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart,
+  PolarGrid, PolarAngleAxis, Radar
+} from "recharts";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+const scoreHistory = [
+  { month: "Oct", score: 55 },
+  { month: "Nov", score: 61 },
+  { month: "Déc", score: 58 },
+  { month: "Jan", score: 65 },
+  { month: "Fév", score: 69 },
+  { month: "Mar", score: 71 },
+];
 
-const Statistics = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { language } = useGlobal();
+const vulnsByType = [
+  { name: "En-têtes manquants", count: 18 },
+  { name: "SSL/TLS", count: 7 },
+  { name: "XSS / Injection", count: 5 },
+  { name: "Config serveur", count: 9 },
+  { name: "Cookies", count: 4 },
+  { name: "Redirections", count: 4 },
+];
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+const riskDistrib = [
+  { name: "Faible", value: 12, color: "#16a34a" },
+  { name: "Moyen", value: 8, color: "#eab308" },
+  { name: "Élevé", value: 5, color: "#f97316" },
+  { name: "Critique", value: 3, color: "#ef4444" },
+];
 
-  const labs = ["Lab1", "Lab2", "Lab3", "Lab4", "Lab5"];
-  const scores = [10, 25, 45, 65, 85];
+const radarData = [
+  { subject: "SSL/TLS", score: 90 },
+  { subject: "En-têtes", score: 55 },
+  { subject: "Cookies", score: 70 },
+  { subject: "Redirections", score: 85 },
+  { subject: "Serveur", score: 60 },
+  { subject: "Contenu", score: 75 },
+];
 
-  const lineData = {
-    labels: labs,
-    datasets: [{
-      label: t("cumulative_progress"),
-      data: scores,
-      fill: true,
-      backgroundColor: "rgba(16,185,129,0.2)",
-      borderColor: "#10b981",
-      tension: 0.4,
-      pointBackgroundColor: "#10b981",
-    }],
-  };
+const scansPerMonth = [
+  { month: "Oct", scans: 3 },
+  { month: "Nov", scans: 4 },
+  { month: "Déc", scans: 2 },
+  { month: "Jan", scans: 5 },
+  { month: "Fév", scans: 7 },
+  { month: "Mar", scans: 7 },
+];
 
-  const barData = {
-    labels: labs,
-    datasets: [{
-      label: t("lab_scores"),
-      data: [10, 15, 20, 20, 20],
-      backgroundColor: scores.map(score => `rgba(16,185,129,${score / 100})`),
-    }],
-  };
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top", labels: { color: "#10b981" } },
-      title: { display: true, text: t("statistics_advanced_title"), color: "#10b981", font: { size: 18 } },
-    },
-    scales: {
-      x: { ticks: { color: "#16a34a" }, grid: { color: "rgba(16,185,129,0.1)" } },
-      y: { ticks: { color: "#16a34a" }, grid: { color: "rgba(16,185,129,0.1)" } },
-    },
-  };
-
-  return (
-    <div
-      className={`min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 dark:bg-gray-900 dark:text-gray-100 flex ${
-        language === "ar" ? "rtl" : "ltr"
-      }`}
-    >
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-gray-800 shadow-xl border-r border-green-100 dark:border-gray-700 flex flex-col p-6">
-        <h2 className="text-2xl font-extrabold text-green-700 dark:text-green-400 mb-10">SecureLab</h2>
-        <nav className="flex flex-col gap-4 text-gray-700 dark:text-gray-200">
-          <button onClick={() => navigate("/dashboard")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">🏠 {t("dashboard")}</button>
-          <button className="bg-green-100 dark:bg-green-700 text-green-700 dark:text-green-100 px-4 py-2 rounded-xl text-left">📊 {t("statistics")}</button>
-          <button onClick={() => navigate("/labs")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">📚 {t("labs")}</button>
-          <button onClick={() => navigate("/settings")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">⚙️ {t("settings")}</button>
-        </nav>
-        <div className="mt-auto pt-10">
-          <button onClick={handleLogout} className="bg-red-500 text-white dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 rounded-xl hover:bg-red-600 transition">{t("logout")}</button>
-        </div>
-      </aside>
-
-      {/* Contenu principal */}
-      <main className="flex-1 p-10 space-y-10">
-        <div>
-          <h1 className="text-4xl font-extrabold text-green-700 dark:text-green-400">{t("statistics_advanced_title")} {user?.prenom || user?.nom || t("user")}</h1>
-          <p className="text-green-600 dark:text-green-300 mt-2">{t("follow_progress_desc")}</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-green-100 dark:border-gray-700 hover:shadow-xl transition">
-            <h2 className="text-xl font-semibold text-green-700 dark:text-green-400 mb-4">{t("cumulative_progress")}</h2>
-            <Line data={lineData} options={options} />
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-green-100 dark:border-gray-700 hover:shadow-xl transition">
-            <h2 className="text-xl font-semibold text-green-700 dark:text-green-400 mb-4">{t("lab_scores")}</h2>
-            <Bar data={barData} options={options} />
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload?.length) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm">
+        <p className="text-gray-500 mb-0.5">{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ color: p.color || "#16a34a" }} className="font-medium">{p.name || p.dataKey}: {p.value}</p>
+        ))}
+      </div>
+    );
+  }
+  return null;
 };
 
-export default Statistics;
+function StatCard({ label, value, sub, color = "green" }) {
+  const c = {
+    green: "text-green-700 bg-green-50 border-green-200",
+    red: "text-red-600 bg-red-50 border-red-200",
+    yellow: "text-yellow-700 bg-yellow-50 border-yellow-200",
+    blue: "text-blue-700 bg-blue-50 border-blue-200",
+  }[color];
+  return (
+    <div className={`rounded-xl border p-4 ${c}`}>
+      <p className="text-2xl font-semibold">{value}</p>
+      <p className="text-xs font-medium mt-0.5">{label}</p>
+      {sub && <p className="text-[11px] opacity-70 mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+export default function Statistics() {
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900">Statistiques</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Vue analytique de vos analyses de sécurité</p>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total scans" value="28" sub="Depuis octobre 2025" color="green" />
+        <StatCard label="Vulnérabilités détectées" value="47" sub="Toutes sévérités" color="red" />
+        <StatCard label="Score moyen" value="71/100" sub="+4 pts ce mois" color="green" />
+        <StatCard label="Taux de réussite" value="68%" sub="Sites sans critique" color="yellow" />
+      </div>
+
+      {/* Score evolution + scans per month */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-900 mb-1">Évolution du score de sécurité</p>
+          <p className="text-xs text-gray-400 mb-4">Score moyen mensuel sur 6 mois</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={scoreHistory}>
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis domain={[40, 100]} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="score" stroke="#16a34a" strokeWidth={2.5} dot={{ fill: "#16a34a", r: 3 }} name="Score" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-900 mb-1">Scans effectués par mois</p>
+          <p className="text-xs text-gray-400 mb-4">Volume d'activité mensuel</p>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={scansPerMonth} barSize={16}>
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="scans" fill="#16a34a" opacity={0.8} radius={[4, 4, 0, 0]} name="Scans" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Vulns by type + Risk distribution + Radar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Vulns by type */}
+        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-900 mb-1">Vulnérabilités par type</p>
+          <p className="text-xs text-gray-400 mb-4">Catégories les plus fréquentes</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={vulnsByType} layout="vertical" barSize={10}>
+              <XAxis type="number" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} width={110} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="count" fill="#16a34a" opacity={0.75} radius={[0, 4, 4, 0]} name="Occurrences" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Risk distribution */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-900 mb-1">Distribution des risques</p>
+          <p className="text-xs text-gray-400 mb-4">Sur l'ensemble des scans</p>
+          <div className="flex flex-col items-center">
+            <PieChart width={150} height={150}>
+              <Pie data={riskDistrib} cx={70} cy={70} innerRadius={45} outerRadius={68} dataKey="value" stroke="none">
+                {riskDistrib.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Pie>
+            </PieChart>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 w-full">
+              {riskDistrib.map((d) => (
+                <div key={d.name} className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                  <span className="text-xs text-gray-500">{d.name}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{d.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Radar chart */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+          <p className="text-sm font-medium text-gray-900 mb-1">Profil de sécurité</p>
+          <p className="text-xs text-gray-400 mb-2">Score par catégorie</p>
+          <ResponsiveContainer width="100%" height={200}>
+            <RadarChart data={radarData}>
+              <PolarGrid stroke="#e5e7eb" />
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: "#9ca3af" }} />
+              <Radar name="Score" dataKey="score" stroke="#16a34a" fill="#16a34a" fillOpacity={0.2} strokeWidth={2} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Top sites table */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <p className="text-sm font-medium text-gray-900 mb-4">Sites les plus analysés</p>
+        <div className="space-y-3">
+          {[
+            { site: "myshop.tn", scans: 8, avgScore: 79, trend: "+5" },
+            { site: "api.myapp.io", scans: 6, avgScore: 60, trend: "-2" },
+            { site: "blog.perso.fr", scans: 5, avgScore: 88, trend: "+8" },
+            { site: "old-portal.tn", scans: 4, avgScore: 42, trend: "+3" },
+            { site: "dev.startup.io", scans: 3, avgScore: 67, trend: "0" },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50">
+              <span className="text-xs text-gray-400 w-6 text-right">{i + 1}</span>
+              <span className="flex-1 text-sm text-gray-900 font-medium">{s.site}</span>
+              <span className="text-xs text-gray-400">{s.scans} scans</span>
+              <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{
+                  width: `${s.avgScore}%`,
+                  background: s.avgScore >= 75 ? "#16a34a" : s.avgScore >= 50 ? "#eab308" : "#ef4444"
+                }} />
+              </div>
+              <span className="text-xs font-medium w-8 text-right" style={{
+                color: s.avgScore >= 75 ? "#16a34a" : s.avgScore >= 50 ? "#eab308" : "#ef4444"
+              }}>{s.avgScore}</span>
+              <span className={`text-xs w-8 text-right font-medium ${
+                s.trend.startsWith("+") ? "text-green-600" : s.trend.startsWith("-") ? "text-red-500" : "text-gray-400"
+              }`}>{s.trend !== "0" ? s.trend : "—"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -13,7 +13,10 @@ import Settings from './pages/Settings';
 import { GlobalProvider } from "./context/GlobalContext";
 import UsersPage from "./pages/UsersPage";
 import './App.css';
+import AdminAudits from './pages/AdminAudits';
+import AdminUsers from './pages/AdminUsers';
 
+import AdminSettings from './pages/AdminSettings';
 function App() {
   return (
     <GlobalProvider>
@@ -24,11 +27,16 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/AdminDashboard" element={<AdminDashboard />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/labs" element={<Labs />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/AdminAudits" element={<AdminAudits />} />
+            <Route path="/AdminUsers" element={<AdminUsers/>} />
+        
+            <Route path="/AdminSettings" element={<AdminSettings />} />
+
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AuthProvider>

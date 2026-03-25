@@ -182,11 +182,11 @@ function Home() {
           </div>
         </section>
       )}
-{/* For Whom Section */}
+
 <section className="py-12 max-w-6xl mx-auto px-6">
   <h2 className="text-2xl font-bold text-center mb-8">Pour qui ?</h2>
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-    {/* Développeurs */}
+    
     <div className="bg-white p-6 rounded-lg shadow-md fade-in transform opacity-0 translate-y-6 text-center">
       <div className="mb-4">
         <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="mx-auto">

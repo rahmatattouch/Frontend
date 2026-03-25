@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import authService from '../services/authService';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,10 +18,29 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, mdp);
-      navigate('/dashboard');
+      // Appel correct du service
+      const res = await authService.login({ email, mdp });
+
+      // Récupération de l'utilisateur et token
+      const user = res.data.user; // doit contenir { name, email, role }
+      const token = res.data.token;
+
+      // Stocker le token
+      localStorage.setItem('token', token);
+
+      // Mettre l'utilisateur dans le contexte
+      login(user);
+
+    if (user.role === 'user') {
+  navigate('/dashboard');
+} else if (user.role === 'admin') {
+  navigate('/AdminDashboard');
+} else {
+  console.warn("Rôle inconnu, redirection vers la page d'accueil");
+  navigate('/'); // page par défaut
+}
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.response?.data?.message || 'Identifiants invalides');
       console.error('Login error:', err);
     } finally {
       setLoading(false);

@@ -1,165 +1,269 @@
-// src/pages/ClientDashboard.jsx
-import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGlobal } from "../context/GlobalContext.jsx";
-import { useTranslation } from "react-i18next";
+import Sidebar from "../components/Sidebar";
+import { useAuth } from "../context/AuthContext";
 
-const ClientDashboard = () => {
-  const { user, logout } = useAuth();
+import Labs from "./Labs";
+import Statistics from "./Statistics";
+import Settings from "./Settings";
+
+import {
+  ShieldCheck,
+  ShieldAlert,
+  ScanSearch,
+  TrendingUp,
+  ArrowRight,
+  Clock,
+} from "lucide-react";
+
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+export default function ClientDashboard() {
+  const [activePage, setActivePage] = useState("dashboard");
   const navigate = useNavigate();
-  const { darkMode } = useGlobal();
-  const { t } = useTranslation();
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileData, setProfileData] = useState({
-    nom: user?.nom || "",
-    prenom: user?.prenom || "",
-    email: user?.email || "",
-  });
+  const { user, logout } = useAuth();
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleProfileSubmit = (e) => {
-    e.preventDefault();
-    console.log("Profile update:", profileData);
-    setIsEditingProfile(false);
-  };
-
+  // ✅ Logout propre
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  return (
-    <div className={`min-h-screen flex ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-br from-green-50 via-white to-green-100"}`}>
-      
-      {/* SIDEBAR */}
-      <aside className={`w-64 ${darkMode ? "bg-gray-800 border-gray-700 text-gray-200" : "bg-white border-green-100 text-gray-700"} shadow-xl border-r flex flex-col p-6`}>
-        <h2 className={`text-2xl font-extrabold ${darkMode ? "text-green-400" : "text-green-700"} mb-10`}>SecureLab</h2>
+  const myStats = [
+    { label: "Mes Scans", value: "28", icon: ScanSearch },
+    { label: "Vulnérabilités", value: "47", icon: ShieldAlert },
+    { label: "Sites sécurisés", value: "19", icon: ShieldCheck },
+    { label: "Score moyen", value: "71", icon: TrendingUp },
+  ];
 
-        <nav className="flex flex-col gap-4">
-          <button onClick={() => navigate("/dashboard")} className={`px-4 py-2 rounded-xl text-left ${darkMode ? "hover:bg-green-700 bg-green-700 text-green-100" : "bg-green-100 text-green-700 hover:bg-green-50"} transition`}>
-             {t("dashboard")}
-          </button>
+  const activityData = [
+    { day: "Lun", score: 65 },
+    { day: "Mar", score: 72 },
+    { day: "Mer", score: 58 },
+    { day: "Jeu", score: 80 },
+    { day: "Ven", score: 74 },
+    { day: "Sam", score: 90 },
+    { day: "Dim", score: 71 },
+  ];
 
-          <button onClick={() => navigate("/statistics")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">
-            {t("statistics")}
-          </button>
+  const recentScans = [
+    { site: "myshop.tn", score: 82, risk: "Faible", date: "24/03/2026", vulns: 2 },
+    { site: "api.myapp.io", score: 55, risk: "Élevé", date: "22/03/2026", vulns: 9 },
+    { site: "blog.perso.fr", score: 90, risk: "Faible", date: "20/03/2026", vulns: 1 },
+    { site: "old-portal.tn", score: 38, risk: "Critique", date: "18/03/2026", vulns: 17 },
+  ];
 
-          <button onClick={() => navigate("/labs")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">
-             {t("labs")}
-          </button>
+  const scoreColor = (s) =>
+    s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
 
-          <button onClick={() => navigate("/settings")} className="hover:bg-green-50 dark:hover:bg-green-600 px-4 py-2 rounded-xl text-left transition">
-             {t("settings")}
-          </button>
-        </nav>
+  const riskBadge = (risk) =>
+    ({
+      Critique: "bg-red-100 text-red-700 border-red-200",
+      Élevé: "bg-orange-100 text-orange-700 border-orange-200",
+      Moyen: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      Faible: "bg-green-100 text-green-700 border-green-200",
+    }[risk] || "bg-gray-100 text-gray-600");
 
-        <div className="mt-auto pt-10">
-          <button onClick={handleLogout} className="bg-red-500 text-white dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 rounded-xl hover:bg-red-600 transition">
-            {t("logout")}
-          </button>
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload?.length) {
+      return (
+        <div className="bg-white border rounded-lg px-3 py-2 text-xs shadow">
+          <p>{label}</p>
+          <p className="text-green-600">Score: {payload[0].value}</p>
         </div>
-      </aside>
+      );
+    }
+    return null;
+  };
 
-      {/* CONTENU PRINCIPAL */}
-      <main className="flex-1 p-10 space-y-10">
-        {/* Header */}
-        <div>
-          <h1 className="text-4xl font-extrabold text-green-700"> Bienvenue, {user?.prenom || user?.nom || "Utilisateur"}  </h1>
-          <p className={`${darkMode ? "text-green-300" : "text-green-600"} mt-2`}>
-            {t("dashboard_intro")}
-          </p>
-        </div>
+  const renderContent = () => {
+    switch (activePage) {
+      case "dashboard":
+        return (
+          <div className="space-y-6">
 
-        {/* Cards statistiques rapides */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className={`rounded-2xl shadow-lg p-6 border hover:shadow-xl transition ${darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-green-100 text-gray-700"}`}>
-            <p className="text-gray-500">{t("tests_completed")}</p>
-            <h2 className="text-3xl font-bold text-green-600 mt-2">5</h2>
-          </div>
-
-          <div className={`rounded-2xl shadow-lg p-6 border hover:shadow-xl transition ${darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-green-100 text-gray-700"}`}>
-            <p className="text-gray-500">{t("available_labs")}</p>
-            <h2 className="text-3xl font-bold text-green-600 mt-2">12</h2>
-          </div>
-
-          <div className={`rounded-2xl shadow-lg p-6 border hover:shadow-xl transition ${darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-green-100 text-gray-700"}`}>
-            <p className="text-gray-500">{t("progress")}</p>
-            <h2 className="text-3xl font-bold text-green-600 mt-2">85%</h2>
-          </div>
-        </div>
-
-        {/* Profil */}
-        <div className={`rounded-2xl shadow-lg p-8 border max-w-lg ${darkMode ? "bg-gray-800 border-gray-700 text-gray-100" : "bg-white border-green-100"}`}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className={`text-2xl font-bold ${darkMode ? "text-green-400" : "text-green-700"}`}>{t("my_profile")}</h2>
-
-            {!isEditingProfile && (
-              <button
-                className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition"
-                onClick={() => setIsEditingProfile(true)}
-              >
-                {t("edit")}
-              </button>
-            )}
-          </div>
-
-          {!isEditingProfile ? (
-            <div className="space-y-4 text-lg">
-              <p><span className="font-semibold text-green-700 dark:text-green-400">{t("last_name")} :</span> {user?.nom}</p>
-              {user?.prenom && <p><span className="font-semibold text-green-700 dark:text-green-400">{t("first_name")} :</span> {user.prenom}</p>}
-              <p><span className="font-semibold text-green-700 dark:text-green-400">{t("email")} :</span> {user?.email}</p>
-            </div>
-          ) : (
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <input
-                type="text"
-                name="nom"
-                value={profileData.nom}
-                onChange={handleProfileChange}
-                className="w-full border border-green-200 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100"
-                placeholder={t("last_name")}
-              />
-              <input
-                type="text"
-                name="prenom"
-                value={profileData.prenom}
-                onChange={handleProfileChange}
-                className="w-full border border-green-200 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100"
-                placeholder={t("first_name")}
-              />
-              <input
-                type="email"
-                name="email"
-                value={profileData.email}
-                onChange={handleProfileChange}
-                className="w-full border border-green-200 dark:border-gray-600 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-100"
-                placeholder={t("email")}
-              />
-
-              <div className="flex gap-3 pt-2">
-                <button className="bg-green-600 text-white px-5 py-2 rounded-xl hover:bg-green-700 transition">
-                  {t("save")}
-                </button>
-                <button
-                  type="button"
-                  className="bg-gray-200 px-5 py-2 rounded-xl hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
-                  onClick={() => setIsEditingProfile(false)}
-                >
-                  {t("cancel")}
-                </button>
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-xl font-semibold">
+                  Bonjour {user?.name || "Utilisateur"} 👋
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Voici votre dashboard
+                </p>
               </div>
-            </form>
-          )}
-        </div>
+
+              <button
+                onClick={() => setActivePage("scan")}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+              >
+                <ScanSearch size={14} />
+                Lancer un scan
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {myStats.map(({ label, value, icon: Icon }) => (
+                <div key={label} className="bg-white border rounded-xl p-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-xs text-gray-500">{label}</span>
+                    <Icon size={14} />
+                  </div>
+                  <p className="text-xl font-semibold">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Chart */}
+            <div className="bg-white border rounded-xl p-4">
+              <p className="text-sm font-medium mb-2">
+                Évolution du score
+              </p>
+
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={activityData}>
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#16a34a"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Alerts + Scans */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+              {/* Alerts */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-900">
+                  Alertes récentes
+                </p>
+
+                {[
+                  { msg: "Certificat SSL expiré détecté sur old-portal.tn", level: "red" },
+                  { msg: "En-têtes de sécurité manquants sur api.myapp.io", level: "yellow" },
+                  { msg: "myshop.tn — configuration sécurisée", level: "green" },
+                ].map((a, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-3 p-3 rounded-lg border text-xs ${
+                      a.level === "red"
+                        ? "bg-red-50 border-red-200 text-red-700"
+                        : a.level === "yellow"
+                        ? "bg-yellow-50 border-yellow-200 text-yellow-700"
+                        : "bg-green-50 border-green-200 text-green-700"
+                    }`}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                        a.level === "red"
+                          ? "bg-red-500"
+                          : a.level === "yellow"
+                          ? "bg-yellow-500"
+                          : "bg-green-500"
+                      }`}
+                    />
+                    {a.msg}
+                  </div>
+                ))}
+              </div>
+
+              {/* Recent scans */}
+              <div className="lg:col-span-2 bg-white border rounded-xl p-4">
+                <div className="flex justify-between mb-4">
+                  <p className="text-sm font-medium">
+                    Derniers scans
+                  </p>
+
+                  <button
+                    onClick={() => setActivePage("stats")}
+                    className="flex items-center gap-1 text-xs text-green-600 hover:underline"
+                  >
+                    Voir tout <ArrowRight size={11} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {recentScans.map((s, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50"
+                    >
+                      <svg width="40" height="40" viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="17" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                        <circle
+                          cx="20"
+                          cy="20"
+                          r="17"
+                          fill="none"
+                          stroke={scoreColor(s.score)}
+                          strokeWidth="3"
+                          strokeDasharray={`${(s.score / 100) * 107} 107`}
+                          transform="rotate(-90 20 20)"
+                        />
+                        <text x="20" y="24" textAnchor="middle" fontSize="10" fill={scoreColor(s.score)}>
+                          {s.score}
+                        </text>
+                      </svg>
+
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{s.site}</p>
+                        <div className="flex gap-2 text-xs text-gray-400">
+                          <Clock size={10} />
+                          {s.date} • {s.vulns} vulnérabilités
+                        </div>
+                      </div>
+
+                      <span className={`text-xs px-2 py-0.5 rounded border ${riskBadge(s.risk)}`}>
+                        {s.risk}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "scan":
+        return <Labs />;
+
+      case "stats":
+        return <Statistics />;
+
+      case "settings":
+        return <Settings />;
+
+      default:
+        return <div>Page non trouvée</div>;
+    }
+  };
+
+  return (
+    <div className="flex">
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        onLogout={handleLogout}
+      />
+
+      <main className="flex-1 ml-60 p-6 bg-gray-50 min-h-screen">
+        {renderContent()}
       </main>
     </div>
   );
-};
-
-export default ClientDashboard;
+}
