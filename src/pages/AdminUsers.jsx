@@ -1,17 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, UserPlus, MoreHorizontal, Shield, ShieldOff, Trash2 } from "lucide-react";
-
-const initialUsers = [
-  { id: 1, name: "Ahmed Ben Ali", email: "ahmed@ithouse.tn", role: "Admin", status: "Actif", audits: 42, joined: "Jan 2026" },
-  { id: 2, name: "Sonia Trabelsi", email: "sonia@corp.fr", role: "Utilisateur", status: "Actif", audits: 18, joined: "Fév 2026" },
-  { id: 3, name: "Mehdi Chaari", email: "mehdi@saas.io", role: "Utilisateur", status: "Inactif", audits: 7, joined: "Mar 2026" },
-  { id: 4, name: "Fatma Jlassi", email: "fatma@startup.tn", role: "Utilisateur", status: "Actif", audits: 31, joined: "Jan 2026" },
-  { id: 5, name: "Karim Nasri", email: "karim@gov.tn", role: "Utilisateur", status: "Actif", audits: 5, joined: "Mar 2026" },
-  { id: 6, name: "Lina Bouaziz", email: "lina@edu.tn", role: "Utilisateur", status: "Suspendu", audits: 0, joined: "Fév 2026" },
-];
+import { getAllUsers, deleteUser as deleteUserApi, updateUser, createUser } from "../services/authService";
 
 const roleBadge = (role) => {
   const m = {
+    admin: "bg-green-100 text-green-700 border border-green-200",
+    user: "bg-gray-100 text-gray-600 border border-gray-200",
     Admin: "bg-green-100 text-green-700 border border-green-200",
     Utilisateur: "bg-gray-100 text-gray-600 border border-gray-200",
   };
@@ -19,42 +13,103 @@ const roleBadge = (role) => {
 };
 
 const statusDot = (s) => {
-  const m = { Actif: "bg-green-500", Inactif: "bg-gray-400", Suspendu: "bg-red-500" };
+  const m = { Actif: "bg-green-500", active: "bg-green-500", Inactif: "bg-gray-400", inactive: "bg-gray-400", Suspendu: "bg-red-500", suspended: "bg-red-500" };
   return m[s] || "bg-gray-400";
 };
 
 const statusText = (s) => {
-  const m = { Actif: "text-green-700", Inactif: "text-gray-400", Suspendu: "text-red-500" };
+  const m = { Actif: "text-green-700", active: "text-green-700", Inactif: "text-gray-400", inactive: "text-gray-400", Suspendu: "text-red-500", suspended: "text-red-500" };
   return m[s] || "text-gray-400";
 };
 
+const statusLabel = (s) => {
+  const m = { active: "Actif", inactive: "Inactif", suspended: "Suspendu" };
+  return m[s] || s;
+};
+
+const roleLabel = (r) => {
+  const m = { admin: "Admin", user: "Utilisateur" };
+  return m[r] || r;
+};
+
 export default function AdminUsers() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("Tous");
   const [openMenu, setOpenMenu] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "Utilisateur" });
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllUsers();
+      setUsers(Array.isArray(data) ? data : data.users || []);
+    } catch (err) {
+      console.error("Erreur chargement utilisateurs:", err);
+      setError("Impossible de charger les utilisateurs.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filtered = users.filter((u) => {
+    const name = u.name || `${u.prenom || ""} ${u.nom || ""}`.trim();
     const matchSearch =
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole = filterRole === "Tous" || u.role === filterRole;
+      name.toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(search.toLowerCase());
+    const role = roleLabel(u.role);
+    const matchRole = filterRole === "Tous" || role === filterRole;
     return matchSearch && matchRole;
   });
 
-  const addUser = () => {
-    if (!newUser.name || !newUser.email) return;
-    setUsers([...users, { id: users.length + 1, ...newUser, status: "Actif", audits: 0, joined: "Mar 2026" }]);
-    setNewUser({ name: "", email: "", role: "Utilisateur" });
-    setShowModal(false);
+  const handleDelete = async (id) => {
+    try {
+      await deleteUserApi(id);
+      setUsers(users.filter((u) => (u._id || u.id) !== id));
+    } catch (err) {
+      console.error("Erreur suppression:", err);
+    }
+    setOpenMenu(null);
   };
 
-  const deleteUser = (id) => { setUsers(users.filter((u) => u.id !== id)); setOpenMenu(null); };
-  const toggleStatus = (id) => {
-    setUsers(users.map((u) => u.id === id ? { ...u, status: u.status === "Actif" ? "Suspendu" : "Actif" } : u));
+  const handleToggleStatus = async (u) => {
+    const id = u._id || u.id;
+    const newStatus = u.status === "active" || u.status === "Actif" ? "suspended" : "active";
+    try {
+      await updateUser(id, { status: newStatus });
+      setUsers(users.map((usr) => (usr._id || usr.id) === id ? { ...usr, status: newStatus } : usr));
+    } catch (err) {
+      console.error("Erreur mise à jour statut:", err);
+    }
     setOpenMenu(null);
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.email) return;
+    try {
+      const parts = newUser.name.trim().split(" ");
+      const prenom = parts[0] || "";
+      const nom = parts.slice(1).join(" ") || parts[0] || "";
+      const created = await createUser({
+        nom,
+        prenom,
+        email: newUser.email,
+        role: newUser.role === "Admin" ? "admin" : "user",
+        mdp: "ChangeMe123!",
+      });
+      setUsers([...users, created]);
+    } catch (err) {
+      console.error("Erreur création utilisateur:", err);
+    }
+    setNewUser({ name: "", email: "", role: "Utilisateur" });
+    setShowModal(false);
   };
 
   const inputCls = "w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition";
@@ -75,6 +130,10 @@ export default function AdminUsers() {
           Ajouter
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">{error}</div>
+      )}
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -105,73 +164,83 @@ export default function AdminUsers() {
 
       {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-gray-400 text-xs bg-gray-50">
-              <th className="text-left px-4 py-3 font-normal">Utilisateur</th>
-              <th className="text-left px-4 py-3 font-normal">Rôle</th>
-              <th className="text-left px-4 py-3 font-normal">Statut</th>
-              <th className="text-left px-4 py-3 font-normal">Audits</th>
-              <th className="text-left px-4 py-3 font-normal">Inscrit</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {filtered.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50 transition relative">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-700 shrink-0">
-                      {u.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                    </div>
-                    <div>
-                      <p className="text-gray-900 font-medium text-sm">{u.name}</p>
-                      <p className="text-xs text-gray-400">{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-md ${roleBadge(u.role)}`}>{u.role}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusDot(u.status)}`} />
-                    <span className={`text-xs ${statusText(u.status)}`}>{u.status}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-gray-700 text-sm">{u.audits}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{u.joined}</td>
-                <td className="px-4 py-3 relative">
-                  <button
-                    onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}
-                    className="text-gray-300 hover:text-gray-600 transition p-1 rounded"
-                  >
-                    <MoreHorizontal size={16} />
-                  </button>
-                  {openMenu === u.id && (
-                    <div className="absolute right-4 top-10 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden w-44">
-                      <button
-                        onClick={() => toggleStatus(u.id)}
-                        className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 transition"
-                      >
-                        {u.status === "Actif" ? <ShieldOff size={13} /> : <Shield size={13} />}
-                        {u.status === "Actif" ? "Suspendre" : "Activer"}
-                      </button>
-                      <button
-                        onClick={() => deleteUser(u.id)}
-                        className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 transition"
-                      >
-                        <Trash2 size={13} />
-                        Supprimer
-                      </button>
-                    </div>
-                  )}
-                </td>
+        {loading ? (
+          <div className="text-center py-12 text-gray-400 text-sm">Chargement...</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-gray-400 text-xs bg-gray-50">
+                <th className="text-left px-4 py-3 font-normal">Utilisateur</th>
+                <th className="text-left px-4 py-3 font-normal">Rôle</th>
+                <th className="text-left px-4 py-3 font-normal">Statut</th>
+                <th className="text-left px-4 py-3 font-normal">Inscrit</th>
+                <th className="px-4 py-3" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map((u) => {
+                const id = u._id || u.id;
+                const name = u.name || `${u.prenom || ""} ${u.nom || ""}`.trim() || u.email;
+                const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+                const role = roleLabel(u.role);
+                const status = statusLabel(u.status);
+                const joinedDate = u.createdAt ? new Date(u.createdAt).toLocaleDateString("fr-FR", { month: "short", year: "numeric" }) : u.joined || "—";
+                return (
+                  <tr key={id} className="hover:bg-gray-50 transition relative">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-xs font-semibold text-green-700 shrink-0">
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-gray-900 font-medium text-sm">{name}</p>
+                          <p className="text-xs text-gray-400">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-md ${roleBadge(u.role)}`}>{role}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusDot(u.status)}`} />
+                        <span className={`text-xs ${statusText(u.status)}`}>{status}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{joinedDate}</td>
+                    <td className="px-4 py-3 relative">
+                      <button
+                        onClick={() => setOpenMenu(openMenu === id ? null : id)}
+                        className="text-gray-300 hover:text-gray-600 transition p-1 rounded"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {openMenu === id && (
+                        <div className="absolute right-4 top-10 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden w-44">
+                          <button
+                            onClick={() => handleToggleStatus(u)}
+                            className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 transition"
+                          >
+                            {u.status === "active" || u.status === "Actif" ? <ShieldOff size={13} /> : <Shield size={13} />}
+                            {u.status === "active" || u.status === "Actif" ? "Suspendre" : "Activer"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(id)}
+                            className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 transition"
+                          >
+                            <Trash2 size={13} />
+                            Supprimer
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">Aucun utilisateur trouvé</div>
         )}
       </div>
@@ -202,7 +271,7 @@ export default function AdminUsers() {
               <button onClick={() => setShowModal(false)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
                 Annuler
               </button>
-              <button onClick={addUser} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition">
+              <button onClick={handleCreateUser} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition">
                 Créer
               </button>
             </div>

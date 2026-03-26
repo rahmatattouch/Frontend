@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
+import { getStatistics } from "../services/authService";
 
 import Labs from "./Labs";
 import Statistics from "./Statistics";
@@ -31,6 +32,14 @@ export default function ClientDashboard() {
 
   const { user, logout } = useAuth();
 
+  const [dashStats, setDashStats] = useState(null);
+
+  useEffect(() => {
+    getStatistics()
+      .then((data) => setDashStats(data))
+      .catch((err) => console.error("Erreur chargement stats dashboard:", err));
+  }, []);
+
   // ✅ Logout propre
   const handleLogout = () => {
     logout();
@@ -38,13 +47,13 @@ export default function ClientDashboard() {
   };
 
   const myStats = [
-    { label: "Mes Scans", value: "28", icon: ScanSearch },
-    { label: "Vulnérabilités", value: "47", icon: ShieldAlert },
-    { label: "Sites sécurisés", value: "19", icon: ShieldCheck },
-    { label: "Score moyen", value: "71", icon: TrendingUp },
+    { label: "Mes Scans", value: String(dashStats?.totalScans ?? 28), icon: ScanSearch },
+    { label: "Vulnérabilités", value: String(dashStats?.totalVulns ?? 47), icon: ShieldAlert },
+    { label: "Sites sécurisés", value: String(dashStats?.securedSites ?? 19), icon: ShieldCheck },
+    { label: "Score moyen", value: String(dashStats?.avgScore ?? 71), icon: TrendingUp },
   ];
 
-  const activityData = [
+  const activityData = dashStats?.activityData || [
     { day: "Lun", score: 65 },
     { day: "Mar", score: 72 },
     { day: "Mer", score: 58 },
@@ -54,7 +63,7 @@ export default function ClientDashboard() {
     { day: "Dim", score: 71 },
   ];
 
-  const recentScans = [
+  const recentScans = dashStats?.recentScans || [
     { site: "myshop.tn", score: 82, risk: "Faible", date: "24/03/2026", vulns: 2 },
     { site: "api.myapp.io", score: 55, risk: "Élevé", date: "22/03/2026", vulns: 9 },
     { site: "blog.perso.fr", score: 90, risk: "Faible", date: "20/03/2026", vulns: 1 },
