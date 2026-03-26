@@ -7,41 +7,34 @@ function Home() {
   const [vulnerabilities, setVulnerabilities] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true);
+      setLoading(true);
 
-        try {
-          const labsData = await getLabs();
-          setLabs(Array.isArray(labsData) ? labsData : []);
-        } catch {}
+      const [labsResult, vulnResult, statsResult] = await Promise.allSettled([
+        getLabs(),
+        getVulnerabilities(),
+        getPlatformStats(),
+      ]);
 
-        try {
-          const vulnData = await getVulnerabilities();
-          setVulnerabilities(Array.isArray(vulnData) ? vulnData : []);
-        } catch {}
-
-        try {
-          const statsData = await getPlatformStats();
-          setStats(statsData);
-        } catch {}
-
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data');
-        setLoading(false);
+      if (labsResult.status === "fulfilled") {
+        setLabs(Array.isArray(labsResult.value) ? labsResult.value : []);
       }
+      if (vulnResult.status === "fulfilled") {
+        setVulnerabilities(Array.isArray(vulnResult.value) ? vulnResult.value : []);
+      }
+      if (statsResult.status === "fulfilled") {
+        setStats(statsResult.value);
+      }
+
+      setLoading(false);
     };
 
     fetchData();
   }, []);
 
   useEffect(() => {
-    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -100px 0px' };
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -49,7 +42,7 @@ function Home() {
           observer.unobserve(entry.target);
         }
       });
-    }, observerOptions);
+    }, { threshold: 0.1, rootMargin: '0px 0px -100px 0px' });
 
     document.querySelectorAll('.fade-in').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
@@ -125,7 +118,13 @@ function Home() {
       </section>
 
       {/* Statistics Section */}
-      {stats && (
+      {loading ? (
+        <section className="py-12 bg-gray-100">
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        </section>
+      ) : stats && (
         <section className="py-12 bg-gray-100">
           <h2 className="text-2xl font-bold text-center mb-8">Statistiques de la Plateforme</h2>
           <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -144,7 +143,6 @@ function Home() {
         </section>
       )}
 
-     
       {labs.length > 0 && (
         <section className="py-12 max-w-6xl mx-auto px-6">
           <h2 className="text-2xl font-bold text-center mb-8">Laboratoires de Sécurité</h2>
@@ -237,7 +235,7 @@ function Home() {
 
       {/* Footer */}
       <footer className="py-6 bg-gray-800 text-gray-200 text-center">
-        <p>&copy; 2024 - Plateforme de Gestion des Vulnérabilités</p>
+        <p>&copy; {new Date().getFullYear()} - Plateforme de Gestion des Vulnérabilités</p>
         <p>Plateforme académique de test et d'apprentissage en sécurité informatique</p>
       </footer>
     </div>

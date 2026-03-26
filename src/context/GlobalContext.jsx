@@ -35,4 +35,5 @@ export const GlobalProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGlobal = () => useContext(GlobalContext);

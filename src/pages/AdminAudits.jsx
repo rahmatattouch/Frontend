@@ -1,24 +1,16 @@
 import { useState } from "react";
 import { Search, ExternalLink, ChevronRight, Filter } from "lucide-react";
+import { scoreColor, riskBadgeClass } from "../utils/colors";
 
 const audits = [
-  { id: "AUD-001", site: "example.com", score: 82, risk: "Faible", ssl: true, headers: 7, vulns: 2, status: "Terminé", date: "24/03/2026", user: "Ahmed B." },
-  { id: "AUD-002", site: "shop.tn", score: 41, risk: "Critique", ssl: false, headers: 2, vulns: 14, status: "Terminé", date: "23/03/2026", user: "Sonia T." },
-  { id: "AUD-003", site: "api.myapp.io", score: 67, risk: "Moyen", ssl: true, headers: 5, vulns: 6, status: "En cours", date: "23/03/2026", user: "Fatma J." },
-  { id: "AUD-004", site: "portal.corp.fr", score: 90, risk: "Faible", ssl: true, headers: 9, vulns: 1, status: "Terminé", date: "22/03/2026", user: "Ahmed B." },
-  { id: "AUD-005", site: "beta.saas.co", score: 55, risk: "Élevé", ssl: true, headers: 3, vulns: 9, status: "Terminé", date: "21/03/2026", user: "Karim N." },
-  { id: "AUD-006", site: "intranet.gov.tn", score: 38, risk: "Critique", ssl: false, headers: 1, vulns: 17, status: "Terminé", date: "20/03/2026", user: "Sonia T." },
-  { id: "AUD-007", site: "dev.startup.io", score: 74, risk: "Moyen", ssl: true, headers: 6, vulns: 4, status: "En cours", date: "19/03/2026", user: "Fatma J." },
+  { id: "AUD-001", site: "example.com",    score: 82, risk: "Faible",   ssl: true,  headers: 7, vulns: 2,  status: "Terminé",  date: "24/03/2026", user: "Ahmed B." },
+  { id: "AUD-002", site: "shop.tn",        score: 41, risk: "Critique", ssl: false, headers: 2, vulns: 14, status: "Terminé",  date: "23/03/2026", user: "Sonia T." },
+  { id: "AUD-003", site: "api.myapp.io",   score: 67, risk: "Moyen",   ssl: true,  headers: 5, vulns: 6,  status: "En cours", date: "23/03/2026", user: "Fatma J." },
+  { id: "AUD-004", site: "portal.corp.fr", score: 90, risk: "Faible",  ssl: true,  headers: 9, vulns: 1,  status: "Terminé",  date: "22/03/2026", user: "Ahmed B." },
+  { id: "AUD-005", site: "beta.saas.co",   score: 55, risk: "Élevé",   ssl: true,  headers: 3, vulns: 9,  status: "Terminé",  date: "21/03/2026", user: "Karim N." },
+  { id: "AUD-006", site: "intranet.gov.tn",score: 38, risk: "Critique", ssl: false, headers: 1, vulns: 17, status: "Terminé",  date: "20/03/2026", user: "Sonia T." },
+  { id: "AUD-007", site: "dev.startup.io", score: 74, risk: "Moyen",   ssl: true,  headers: 6, vulns: 4,  status: "En cours", date: "19/03/2026", user: "Fatma J." },
 ];
-
-const riskColor = {
-  Faible: "bg-green-100 text-green-700 border-green-200",
-  Moyen: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  Élevé: "bg-orange-100 text-orange-700 border-orange-200",
-  Critique: "bg-red-100 text-red-700 border-red-200",
-};
-
-const scoreColor = (s) => s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
 
 export default function AdminAudits() {
   const [search, setSearch] = useState("");
@@ -97,7 +89,7 @@ export default function AdminAudits() {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-md border ${riskColor[a.risk]}`}>{a.risk}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-md border ${riskBadgeClass(a.risk)}`}>{a.risk}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs font-medium ${a.ssl ? "text-green-600" : "text-red-500"}`}>
@@ -145,7 +137,7 @@ export default function AdminAudits() {
 
             <div className="space-y-2">
               {[
-                ["Niveau de risque", <span className={`text-xs px-2 py-0.5 rounded border ${riskColor[selected.risk]}`}>{selected.risk}</span>],
+                ["Niveau de risque", <span key="risk" className={`text-xs px-2 py-0.5 rounded border ${riskBadgeClass(selected.risk)}`}>{selected.risk}</span>],
                 ["SSL/HTTPS", <span className={selected.ssl ? "text-green-600 text-xs" : "text-red-500 text-xs"}>{selected.ssl ? "✓ Activé" : "✗ Absent"}</span>],
                 ["En-têtes analysés", <span className="text-gray-700 text-xs">{selected.headers}/10</span>],
                 ["Vulnérabilités", <span className="text-red-500 font-semibold text-xs">{selected.vulns}</span>],

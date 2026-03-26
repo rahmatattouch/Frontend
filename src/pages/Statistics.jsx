@@ -1,10 +1,12 @@
+import { useState, useEffect } from "react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart,
   PolarGrid, PolarAngleAxis, Radar
 } from "recharts";
+import { getStatistics } from "../services/authService";
 
-const scoreHistory = [
+const defaultScoreHistory = [
   { month: "Oct", score: 55 },
   { month: "Nov", score: 61 },
   { month: "Déc", score: 58 },
@@ -13,7 +15,7 @@ const scoreHistory = [
   { month: "Mar", score: 71 },
 ];
 
-const vulnsByType = [
+const defaultVulnsByType = [
   { name: "En-têtes manquants", count: 18 },
   { name: "SSL/TLS", count: 7 },
   { name: "XSS / Injection", count: 5 },
@@ -22,14 +24,14 @@ const vulnsByType = [
   { name: "Redirections", count: 4 },
 ];
 
-const riskDistrib = [
+const defaultRiskDistrib = [
   { name: "Faible", value: 12, color: "#16a34a" },
   { name: "Moyen", value: 8, color: "#eab308" },
   { name: "Élevé", value: 5, color: "#f97316" },
   { name: "Critique", value: 3, color: "#ef4444" },
 ];
 
-const radarData = [
+const defaultRadarData = [
   { subject: "SSL/TLS", score: 90 },
   { subject: "En-têtes", score: 55 },
   { subject: "Cookies", score: 70 },
@@ -38,7 +40,7 @@ const radarData = [
   { subject: "Contenu", score: 75 },
 ];
 
-const scansPerMonth = [
+const defaultScansPerMonth = [
   { month: "Oct", scans: 3 },
   { month: "Nov", scans: 4 },
   { month: "Déc", scans: 2 },
@@ -78,6 +80,35 @@ function StatCard({ label, value, sub, color = "green" }) {
 }
 
 export default function Statistics() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    getStatistics()
+      .then((data) => setStats(data))
+      .catch((err) => console.error("Erreur chargement statistiques:", err));
+  }, []);
+
+  const scoreHistory = stats?.scoreHistory || defaultScoreHistory;
+  const vulnsByType = stats?.vulnsByType || defaultVulnsByType;
+  const riskDistrib = (stats?.riskDistrib || defaultRiskDistrib).map((d, i) => ({
+    ...d,
+    color: d.color || ["#16a34a", "#eab308", "#f97316", "#ef4444"][i % 4],
+  }));
+  const radarData = stats?.radarData || defaultRadarData;
+  const scansPerMonth = stats?.scansPerMonth || defaultScansPerMonth;
+  const topSites = stats?.topSites || [
+    { site: "myshop.tn", scans: 8, avgScore: 79, trend: "+5" },
+    { site: "api.myapp.io", scans: 6, avgScore: 60, trend: "-2" },
+    { site: "blog.perso.fr", scans: 5, avgScore: 88, trend: "+8" },
+    { site: "old-portal.tn", scans: 4, avgScore: 42, trend: "+3" },
+    { site: "dev.startup.io", scans: 3, avgScore: 67, trend: "0" },
+  ];
+
+  const totalScans = stats?.totalScans ?? 28;
+  const totalVulns = stats?.totalVulns ?? 47;
+  const avgScore = stats?.avgScore ?? 71;
+  const successRate = stats?.successRate ?? 68;
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -87,10 +118,10 @@ export default function Statistics() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total scans" value="28" sub="Depuis octobre 2025" color="green" />
-        <StatCard label="Vulnérabilités détectées" value="47" sub="Toutes sévérités" color="red" />
-        <StatCard label="Score moyen" value="71/100" sub="+4 pts ce mois" color="green" />
-        <StatCard label="Taux de réussite" value="68%" sub="Sites sans critique" color="yellow" />
+        <StatCard label="Total scans" value={String(totalScans)} sub="Depuis octobre 2025" color="green" />
+        <StatCard label="Vulnérabilités détectées" value={String(totalVulns)} sub="Toutes sévérités" color="red" />
+        <StatCard label="Score moyen" value={`${avgScore}/100`} sub="+4 pts ce mois" color="green" />
+        <StatCard label="Taux de réussite" value={`${successRate}%`} sub="Sites sans critique" color="yellow" />
       </div>
 
       {/* Score evolution + scans per month */}
@@ -178,13 +209,7 @@ export default function Statistics() {
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <p className="text-sm font-medium text-gray-900 mb-4">Sites les plus analysés</p>
         <div className="space-y-3">
-          {[
-            { site: "myshop.tn", scans: 8, avgScore: 79, trend: "+5" },
-            { site: "api.myapp.io", scans: 6, avgScore: 60, trend: "-2" },
-            { site: "blog.perso.fr", scans: 5, avgScore: 88, trend: "+8" },
-            { site: "old-portal.tn", scans: 4, avgScore: 42, trend: "+3" },
-            { site: "dev.startup.io", scans: 3, avgScore: 67, trend: "0" },
-          ].map((s, i) => (
+          {topSites.map((s, i) => (
             <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50">
               <span className="text-xs text-gray-400 w-6 text-right">{i + 1}</span>
               <span className="flex-1 text-sm text-gray-900 font-medium">{s.site}</span>

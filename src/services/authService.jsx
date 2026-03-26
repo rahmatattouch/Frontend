@@ -1,10 +1,12 @@
 
 import axios from "axios";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = `${BASE_URL}/api/users`;
+const API_BASE = `${BASE_URL}/api`;
 
-const API_URL = "http://localhost:5000/api/users";
 const apiCall = async (endpoint, options = {}) => {
-  const url = `${API_URL}${endpoint}`;
+  const url = `${API_BASE}${endpoint}`;
   const token = localStorage.getItem('token');
 
   const headers = {
@@ -72,13 +74,11 @@ export const deleteUser = async (userId) => {
   });
 };
 
-
 export const getUserById = async (userId) => {
   return apiCall(`/users/${userId}`, {
     method: 'GET',
   });
 };
-
 
 export const getVulnerabilities = async () => {
   return apiCall('/vulnerabilities', {
@@ -89,6 +89,20 @@ export const getVulnerabilities = async () => {
 export const getLabs = async () => {
   return apiCall('/labs', {
     method: 'GET',
+  });
+};
+
+export const createUser = async (userData) => {
+  return apiCall('/users/register', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+};
+
+export const analyzeSite = async (url, mode = 'standard') => {
+  return apiCall('/labs/scan', {
+    method: 'POST',
+    body: JSON.stringify({ url, mode }),
   });
 };
 
@@ -113,6 +127,8 @@ const authService = {
   getUserById,
   getVulnerabilities,
   getLabs,
+  analyzeSite,
+  createUser,
   getStatistics,
   getPlatformStats,
 };

@@ -1,46 +1,21 @@
 import { useState } from "react";
-import { Save, RefreshCw, Bell, Lock, Server, Brain, Mail } from "lucide-react";
+import { Save, RefreshCw, Bell, Lock, Server } from "lucide-react";
+import Toggle from "../components/common/Toggle";
+import Field from "../components/common/Field";
 
 const sections = [
-  { id: "general", label: "Général", icon: Server },
- 
+  { id: "general",       label: "Général",       icon: Server },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "securite", label: "Sécurité", icon: Lock },
-  
+  { id: "securite",      label: "Sécurité",      icon: Lock },
 ];
-
-function Toggle({ value, onChange }) {
-  return (
-    <button
-      onClick={() => onChange(!value)}
-      className={`relative w-10 h-5 rounded-full transition-colors ${value ? "bg-green-600" : "bg-gray-200"}`}
-    >
-      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${value ? "translate-x-5" : ""}`} />
-    </button>
-  );
-}
-
-function Field({ label, desc, children }) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-4 border-b border-gray-100">
-      <div className="flex-1">
-        <p className="text-sm text-gray-900">{label}</p>
-        {desc && <p className="text-xs text-gray-400 mt-0.5">{desc}</p>}
-      </div>
-      <div className="shrink-0">{children}</div>
-    </div>
-  );
-}
 
 export default function AdminSettings() {
   const [activeSection, setActiveSection] = useState("general");
   const [saved, setSaved] = useState(false);
 
-  const [general, setGeneral] = useState({ platformName: "SecureAudit", maxConcurrent: "5", timeout: "30", maintenanceMode: false });
-  const [ia, setIa] = useState({ model: "isolation_forest", sensitivity: "medium", autoRecommend: true, reduceFP: true });
-  const [notifs, setNotifs] = useState({ emailCritical: true, emailReport: true, inAppAlert: true, weeklyDigest: false });
+  const [general,  setGeneral]  = useState({ platformName: "SecureAudit", maxConcurrent: "5", timeout: "30", maintenanceMode: false });
+  const [notifs,   setNotifs]   = useState({ emailCritical: true, emailReport: true, inAppAlert: true, weeklyDigest: false });
   const [security, setSecurity] = useState({ mfa: false, sessionTimeout: "60", rateLimit: "100", ipWhitelist: "" });
-  const [smtp, setSmtp] = useState({ host: "smtp.ithouse.tn", port: "587", user: "noreply@ithouse.tn", tls: true });
 
   const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2500); };
 
@@ -65,7 +40,7 @@ export default function AdminSettings() {
             </Field>
           </>
         );
-      
+
       case "notifications":
         return (
           <>
@@ -83,6 +58,7 @@ export default function AdminSettings() {
             </Field>
           </>
         );
+
       case "securite":
         return (
           <>
@@ -100,7 +76,9 @@ export default function AdminSettings() {
             </Field>
           </>
         );
-      default: return null;
+
+      default:
+        return null;
     }
   };
 
@@ -130,20 +108,23 @@ export default function AdminSettings() {
 
       <div className="flex gap-6">
         <div className="w-52 shrink-0 space-y-1">
-          {sections.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveSection(id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left transition ${
-                activeSection === id
-                  ? "bg-green-50 text-green-700 border border-green-200 font-medium"
-                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
-              }`}
-            >
-              <Icon size={15} className="shrink-0" />
-              {label}
-            </button>
-          ))}
+          {sections.map((section) => {
+            const SectionIcon = section.icon;
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left transition ${
+                  activeSection === section.id
+                    ? "bg-green-50 text-green-700 border border-green-200 font-medium"
+                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                }`}
+              >
+                <SectionIcon size={15} className="shrink-0" />
+                {section.label}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex-1 bg-white border border-gray-200 rounded-xl px-6 shadow-sm">
