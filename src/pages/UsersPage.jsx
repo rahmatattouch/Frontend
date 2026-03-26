@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import authService from "../services/authService";
-import { useNavigate } from "react-router-dom";
-const UsersPage = () => {
-    const navigate = useNavigate();
 
+const UsersPage = () => {
 const [users,setUsers] = useState([]);
 const [loading,setLoading] = useState(true);
 const [search,setSearch] = useState("");
+const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
 const [currentPage,setCurrentPage] = useState(1);
 const usersPerPage = 5;
@@ -20,10 +19,10 @@ const fetchUsers = async ()=>{
 try{
 setLoading(true);
 const data = await authService.getAllUsers();
-setUsers(data);
+setUsers(Array.isArray(data) ? data : data.users || []);
 }
 catch(error){
-console.error("Erreur récupération utilisateurs",error);
+console.error("Erreur récupération utilisateurs", error);
 }
 finally{
 setLoading(false);
@@ -32,14 +31,15 @@ setLoading(false);
 
 
 const deleteUser = async(id)=>{
-if(window.confirm("Supprimer cet utilisateur ?")){
 try{
 await authService.deleteUser(id);
 setUsers(users.filter(u=>u._id !== id));
 }
 catch(error){
-console.error(error);
+console.error("Erreur suppression utilisateur", error);
 }
+finally{
+setConfirmDeleteId(null);
 }
 };
 
@@ -183,10 +183,10 @@ Edit
 </button>
 
 <button
-onClick={()=>deleteUser(user._id)}
+onClick={()=>setConfirmDeleteId(user._id)}
 className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
 >
-Delete
+Supprimer
 </button>
 
 </td>
@@ -239,6 +239,24 @@ Suivant
 </button>
 
 </div>
+
+{/* Inline delete confirmation modal */}
+{confirmDeleteId && (
+<div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+<div className="bg-white border border-gray-200 rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
+<p className="text-sm font-medium text-gray-900 mb-2">Confirmer la suppression</p>
+<p className="text-xs text-gray-500 mb-5">Cette action est irréversible.</p>
+<div className="flex gap-3 justify-center">
+<button onClick={()=>setConfirmDeleteId(null)} className="px-4 py-2 border border-gray-200 text-gray-500 text-sm rounded-lg hover:bg-gray-50 transition">
+Annuler
+</button>
+<button onClick={()=>deleteUser(confirmDeleteId)} className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition">
+Supprimer
+</button>
+</div>
+</div>
+</div>
+)}
 
 </div>
 

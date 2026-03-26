@@ -4,6 +4,7 @@ import {
   ChevronUp, CheckCircle2, XCircle, AlertTriangle, Loader2, Globe
 } from "lucide-react";
 import { analyzeSite } from "../services/authService";
+import { scoreColor, riskBadgeClass } from "../utils/colors";
 
 const STEPS = ["Résolution DNS", "Handshake TLS", "Analyse HTTP", "Détection vulnérabilités", "Rapport IA"];
 
@@ -15,17 +16,17 @@ const mockResults = {
   redirect: true,
   server: "nginx/1.24.0",
   headers: [
-    { name: "Content-Security-Policy", present: false, critical: true },
-    { name: "Strict-Transport-Security", present: true, critical: true },
-    { name: "X-Frame-Options", present: true, critical: false },
-    { name: "X-Content-Type-Options", present: true, critical: false },
-    { name: "Referrer-Policy", present: false, critical: false },
-    { name: "Permissions-Policy", present: false, critical: false },
+    { name: "Content-Security-Policy",   present: false, critical: true },
+    { name: "Strict-Transport-Security", present: true,  critical: true },
+    { name: "X-Frame-Options",           present: true,  critical: false },
+    { name: "X-Content-Type-Options",    present: true,  critical: false },
+    { name: "Referrer-Policy",           present: false, critical: false },
+    { name: "Permissions-Policy",        present: false, critical: false },
   ],
   vulns: [
-    { id: "V-001", severity: "Élevé", title: "CSP absente", description: "Aucune politique de sécurité du contenu configurée. Risque XSS élevé.", fix: "Ajouter l'en-tête Content-Security-Policy avec une politique restrictive." },
-    { id: "V-002", severity: "Moyen", title: "Referrer-Policy manquante", description: "Les informations de référence sont exposées aux sites tiers.", fix: "Définir Referrer-Policy: strict-origin-when-cross-origin." },
-    { id: "V-003", severity: "Faible", title: "Permissions-Policy absente", description: "Les permissions du navigateur ne sont pas restreintes.", fix: "Ajouter Permissions-Policy pour limiter l'accès aux API sensibles." },
+    { id: "V-001", severity: "Élevé",  title: "CSP absente",              description: "Aucune politique de sécurité du contenu configurée. Risque XSS élevé.",   fix: "Ajouter l'en-tête Content-Security-Policy avec une politique restrictive." },
+    { id: "V-002", severity: "Moyen",  title: "Referrer-Policy manquante", description: "Les informations de référence sont exposées aux sites tiers.",            fix: "Définir Referrer-Policy: strict-origin-when-cross-origin." },
+    { id: "V-003", severity: "Faible", title: "Permissions-Policy absente", description: "Les permissions du navigateur ne sont pas restreintes.",                  fix: "Ajouter Permissions-Policy pour limiter l'accès aux API sensibles." },
   ],
   recommendations: [
     "Mettre en place une politique CSP stricte pour prévenir les attaques XSS",
@@ -33,15 +34,6 @@ const mockResults = {
     "Envisager l'ajout d'un WAF (Web Application Firewall)",
   ],
 };
-
-const severityColor = {
-  Critique: "bg-red-100 text-red-700 border-red-200",
-  Élevé: "bg-orange-100 text-orange-700 border-orange-200",
-  Moyen: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  Faible: "bg-green-100 text-green-700 border-green-200",
-};
-
-const scoreColor = (s) => s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
 
 export default function Labs() {
   const [url, setUrl] = useState("");
@@ -224,7 +216,7 @@ export default function Labs() {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-lg font-semibold text-gray-900 font-mono">{url}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-md border ${severityColor[results.risk]}`}>{results.risk}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-md border ${riskBadgeClass(results.risk)}`}>{results.risk}</span>
                 </div>
                 <p className="text-sm text-gray-500 mb-3">Analyse terminée — {results.vulns.length} vulnérabilité(s) détectée(s)</p>
                 <div className="grid grid-cols-3 gap-3">
@@ -278,7 +270,7 @@ export default function Labs() {
                     onClick={() => setOpenVuln(openVuln === v.id ? null : v.id)}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left"
                   >
-                    <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${severityColor[v.severity]}`}>{v.severity}</span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded border shrink-0 ${riskBadgeClass(v.severity)}`}>{v.severity}</span>
                     <span className="text-sm text-gray-900 flex-1 font-medium">{v.title}</span>
                     <span className="text-xs text-gray-400 font-mono">{v.id}</span>
                     {openVuln === v.id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}

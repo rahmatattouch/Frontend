@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
 import { getStatistics } from "../services/authService";
+import { scoreColor, riskBadgeClass } from "../utils/colors";
 
 import Labs from "./Labs";
 import Statistics from "./Statistics";
@@ -47,10 +48,10 @@ export default function ClientDashboard() {
   };
 
   const myStats = [
-    { label: "Mes Scans", value: String(dashStats?.totalScans ?? 28), icon: ScanSearch },
-    { label: "Vulnérabilités", value: String(dashStats?.totalVulns ?? 47), icon: ShieldAlert },
-    { label: "Sites sécurisés", value: String(dashStats?.securedSites ?? 19), icon: ShieldCheck },
-    { label: "Score moyen", value: String(dashStats?.avgScore ?? 71), icon: TrendingUp },
+    { label: "Mes Scans",      value: String(dashStats?.totalScans   ?? 28), icon: ScanSearch },
+    { label: "Vulnérabilités", value: String(dashStats?.totalVulns   ?? 47), icon: ShieldAlert },
+    { label: "Sites sécurisés",value: String(dashStats?.securedSites ?? 19), icon: ShieldCheck },
+    { label: "Score moyen",    value: String(dashStats?.avgScore     ?? 71), icon: TrendingUp },
   ];
 
   const activityData = dashStats?.activityData || [
@@ -64,22 +65,11 @@ export default function ClientDashboard() {
   ];
 
   const recentScans = dashStats?.recentScans || [
-    { site: "myshop.tn", score: 82, risk: "Faible", date: "24/03/2026", vulns: 2 },
-    { site: "api.myapp.io", score: 55, risk: "Élevé", date: "22/03/2026", vulns: 9 },
-    { site: "blog.perso.fr", score: 90, risk: "Faible", date: "20/03/2026", vulns: 1 },
-    { site: "old-portal.tn", score: 38, risk: "Critique", date: "18/03/2026", vulns: 17 },
+    { site: "myshop.tn",      score: 82, risk: "Faible",   date: "24/03/2026", vulns: 2 },
+    { site: "api.myapp.io",   score: 55, risk: "Élevé",    date: "22/03/2026", vulns: 9 },
+    { site: "blog.perso.fr",  score: 90, risk: "Faible",   date: "20/03/2026", vulns: 1 },
+    { site: "old-portal.tn",  score: 38, risk: "Critique", date: "18/03/2026", vulns: 17 },
   ];
-
-  const scoreColor = (s) =>
-    s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
-
-  const riskBadge = (risk) =>
-    ({
-      Critique: "bg-red-100 text-red-700 border-red-200",
-      Élevé: "bg-orange-100 text-orange-700 border-orange-200",
-      Moyen: "bg-yellow-100 text-yellow-700 border-yellow-200",
-      Faible: "bg-green-100 text-green-700 border-green-200",
-    }[risk] || "bg-gray-100 text-gray-600");
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload?.length) {
@@ -121,15 +111,18 @@ export default function ClientDashboard() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {myStats.map(({ label, value, icon: Icon }) => (
-                <div key={label} className="bg-white border rounded-xl p-4">
+              {myStats.map((stat) => {
+                const StatIcon = stat.icon;
+                return (
+                <div key={stat.label} className="bg-white border rounded-xl p-4">
                   <div className="flex justify-between mb-2">
-                    <span className="text-xs text-gray-500">{label}</span>
-                    <Icon size={14} />
+                    <span className="text-xs text-gray-500">{stat.label}</span>
+                    <StatIcon size={14} />
                   </div>
-                  <p className="text-xl font-semibold">{value}</p>
+                  <p className="text-xl font-semibold">{stat.value}</p>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Chart */}
@@ -237,7 +230,7 @@ export default function ClientDashboard() {
                         </div>
                       </div>
 
-                      <span className={`text-xs px-2 py-0.5 rounded border ${riskBadge(s.risk)}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded border ${riskBadgeClass(s.risk)}`}>
                         {s.risk}
                       </span>
                     </div>

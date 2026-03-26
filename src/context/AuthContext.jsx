@@ -1,33 +1,25 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
-import * as authService from "../services/authService"; // ton service axios existant
+import React, { createContext, useContext, useState } from "react";
+import * as authService from "../services/authService";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Vérifie si l'utilisateur est déjà connecté
-  useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedToken && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        setToken(storedToken);
-      } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      }
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      localStorage.removeItem("user");
+      return null;
     }
-    setLoading(false);
-  }, []);
+  });
 
-  // LOGIN existant
+  const [token, setToken] = useState(() => localStorage.getItem("token") || null);
+
+  const loading = false;
+
+  // LOGIN
   const login = async (email, mdp) => {
     const response = await authService.login({ email, mdp });
     const { token: jwtToken, user: userData } = response.data;
@@ -40,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     return { token: jwtToken, user: userData };
   };
 
-  // LOGOUT existant
+  // LOGOUT
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -48,13 +40,10 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
   };
 
-  // ✅ NOUVEAU : REGISTER
+  // REGISTER
   const register = async (data) => {
     try {
-      // data = { nom, prenom, email, mdp }
-      const response = await authService.register(data); // service axios vers /api/register
-      // Si tu veux, tu peux directement connecter l'utilisateur après l'inscription
-      // setUser(response.data.user);
+      const response = await authService.register(data);
       return response.data;
     } catch (err) {
       throw new Error(err.response?.data?.message || "Registration failed");
@@ -72,6 +61,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
