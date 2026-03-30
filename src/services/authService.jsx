@@ -101,11 +101,17 @@ export const getLabs = async () => {
   });
 };
 
-export const analyzeSite = async (url, mode = 'standard') => {
-  return apiCall('/labs/scan', {
-    method: 'POST',
-    body: JSON.stringify({ url, mode }),
-  });
+export const analyzeSite = async (url, mode) => {
+  try {
+    const response = await axios.post("http://localhost:5000/api/audit/launch", {
+      targetUrl: url,
+      intensity: mode, // rapide | standard | approfondi
+    });
+    return response.data;
+  } catch (err) {
+    console.error("Erreur analyse site:", err);
+    throw err;
+  }
 };
 
 export const getStatistics = async () => {
@@ -119,6 +125,7 @@ export const getPlatformStats = async () => {
     method: 'GET',
   });
 };
+
 const authService = {
   register,
   login,
