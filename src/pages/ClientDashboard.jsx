@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useAuth } from "../context/AuthContext";
+import { getStatistics } from "../services/authService";
 
 import Labs from "./Labs";
 import Statistics from "./Statistics";
@@ -27,6 +28,7 @@ import {
 
 export default function ClientDashboard() {
   const [activePage, setActivePage] = useState("dashboard");
+  const [dashStats, setDashStats] = useState(null);
   const navigate = useNavigate();
 
   const { user, logout } = useAuth();
@@ -37,14 +39,20 @@ export default function ClientDashboard() {
     navigate("/login");
   };
 
+  useEffect(() => {
+    getStatistics()
+      .then((data) => setDashStats(data))
+      .catch((err) => console.error("Erreur chargement stats dashboard:", err));
+  }, []);
+
   const myStats = [
-    { label: "Mes Scans", value: "28", icon: ScanSearch },
-    { label: "Vulnérabilités", value: "47", icon: ShieldAlert },
-    { label: "Sites sécurisés", value: "19", icon: ShieldCheck },
-    { label: "Score moyen", value: "71", icon: TrendingUp },
+    { label: "Mes Scans", value: String(dashStats?.totalScans ?? 28), icon: ScanSearch },
+    { label: "Vulnérabilités", value: String(dashStats?.totalVulns ?? 47), icon: ShieldAlert },
+    { label: "Sites sécurisés", value: String(dashStats?.securedSites ?? 19), icon: ShieldCheck },
+    { label: "Score moyen", value: String(dashStats?.avgScore ?? 71), icon: TrendingUp },
   ];
 
-  const activityData = [
+  const activityData = dashStats?.activityData || [
     { day: "Lun", score: 65 },
     { day: "Mar", score: 72 },
     { day: "Mer", score: 58 },
@@ -54,11 +62,16 @@ export default function ClientDashboard() {
     { day: "Dim", score: 71 },
   ];
 
-  const recentScans = [
+  const recentScans = dashStats?.recentScans || [
     { site: "myshop.tn", score: 82, risk: "Faible", date: "24/03/2026", vulns: 2 },
     { site: "api.myapp.io", score: 55, risk: "Élevé", date: "22/03/2026", vulns: 9 },
     { site: "blog.perso.fr", score: 90, risk: "Faible", date: "20/03/2026", vulns: 1 },
     { site: "old-portal.tn", score: 38, risk: "Critique", date: "18/03/2026", vulns: 17 },
+  ];
+  const alerts = dashStats?.alerts || [
+    { msg: "Certificat SSL expiré détecté sur old-portal.tn", level: "red" },
+    { msg: "En-têtes de sécurité manquants sur api.myapp.io", level: "yellow" },
+    { msg: "myshop.tn — configuration sécurisée", level: "green" },
   ];
 
   const scoreColor = (s) =>
@@ -153,11 +166,7 @@ export default function ClientDashboard() {
                   Alertes récentes
                 </p>
 
-                {[
-                  { msg: "Certificat SSL expiré détecté sur old-portal.tn", level: "red" },
-                  { msg: "En-têtes de sécurité manquants sur api.myapp.io", level: "yellow" },
-                  { msg: "myshop.tn — configuration sécurisée", level: "green" },
-                ].map((a, i) => (
+                {alerts.map((a, i) => (
                   <div
                     key={i}
                     className={`flex items-start gap-3 p-3 rounded-lg border text-xs ${
