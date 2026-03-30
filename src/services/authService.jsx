@@ -1,10 +1,12 @@
 
 import axios from "axios";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const USERS_API_URL = `${BASE_URL}/api/users`;
+const API_BASE = `${BASE_URL}/api`;
 
-const API_URL = "http://localhost:5000/api/users";
 const apiCall = async (endpoint, options = {}) => {
-  const url = `${API_URL}${endpoint}`;
+  const url = `${API_BASE}${endpoint}`;
   const token = localStorage.getItem('token');
 
   const headers = {
@@ -40,11 +42,11 @@ const apiCall = async (endpoint, options = {}) => {
 
 
 export const register = (data) => {
-  return axios.post(`${API_URL}/register`, data);
+  return axios.post(`${USERS_API_URL}/register`, data);
 };
 
 export const login = ({ email, mdp }) => {
-  return axios.post(`${API_URL}/login`, { email, mdp });
+  return axios.post(`${USERS_API_URL}/login`, { email, mdp });
 };
 
 export const getCurrentUser = async () => {
@@ -56,6 +58,13 @@ export const getCurrentUser = async () => {
 export const getAllUsers = async () => {
   return apiCall('/users', {
     method: 'GET',
+  });
+};
+
+export const createUser = async (userData) => {
+  return apiCall('/users/register', {
+    method: 'POST',
+    body: JSON.stringify(userData),
   });
 };
 
@@ -81,25 +90,32 @@ export const getUserById = async (userId) => {
 
 
 export const getVulnerabilities = async () => {
-  return apiCall('/vulnerabilities', {
+  return apiCall('/users/vulnerabilities', {
     method: 'GET',
   });
 };
 
 export const getLabs = async () => {
-  return apiCall('/labs', {
+  return apiCall('/users/labs', {
     method: 'GET',
   });
 };
 
+export const analyzeSite = async (url, mode = 'standard') => {
+  return apiCall('/labs/scan', {
+    method: 'POST',
+    body: JSON.stringify({ url, mode }),
+  });
+};
+
 export const getStatistics = async () => {
-  return apiCall('/statistics', {
+  return apiCall('/users/statistics', {
     method: 'GET',
   });
 };
 
 export const getPlatformStats = async () => {
-  return apiCall('/stats/platform', {
+  return apiCall('/users/stats/platform', {
     method: 'GET',
   });
 };
@@ -108,11 +124,13 @@ const authService = {
   login,
   getCurrentUser,
   getAllUsers,
+  createUser,
   updateUser,
   deleteUser,
   getUserById,
   getVulnerabilities,
   getLabs,
+  analyzeSite,
   getStatistics,
   getPlatformStats,
 };

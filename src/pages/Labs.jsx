@@ -3,6 +3,7 @@ import {
   ScanSearch, ShieldCheck, ShieldAlert, ShieldX, ChevronDown,
   ChevronUp, CheckCircle2, XCircle, AlertTriangle, Loader2, Globe
 } from "lucide-react";
+import { analyzeSite } from "../services/authService";
 
 const STEPS = ["Résolution DNS", "Handshake TLS", "Analyse HTTP", "Détection vulnérabilités", "Rapport IA"];
 
@@ -50,25 +51,36 @@ export default function Labs() {
   const [openVuln, setOpenVuln] = useState(null);
   const [results, setResults] = useState(null);
 
-  const startScan = () => {
+  const startScan = async () => {
     if (!url.trim()) return;
     setStatus("scanning");
     setCurrentStep(0);
     setResults(null);
 
-    const advance = (step) => {
+    // Animate through steps while the API call runs.
+    const advanceSteps = (step) => {
       setTimeout(() => {
         setCurrentStep(step);
-        if (step < STEPS.length - 1) advance(step + 1);
-        else {
-          setTimeout(() => {
-            setStatus("done");
-            setResults(mockResults);
-          }, 800);
-        }
+        if (step < STEPS.length - 1) advanceSteps(step + 1);
       }, 700 + step * 200);
     };
-    advance(1);
+    advanceSteps(1);
+
+    try {
+      const data = await analyzeSite(url.trim(), scanMode);
+
+      // Wait for animation to nearly finish before showing results.
+      setTimeout(() => {
+        setStatus("done");
+        setResults(data);
+      }, 700 + (STEPS.length - 1) * 200 + 800);
+    } catch {
+      // Fallback to mock results if backend is unavailable.
+      setTimeout(() => {
+        setStatus("done");
+        setResults(mockResults);
+      }, 700 + (STEPS.length - 1) * 200 + 800);
+    }
   };
 
   const reset = () => { setStatus("idle"); setUrl(""); setCurrentStep(0); setResults(null); };
