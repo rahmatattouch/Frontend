@@ -28,8 +28,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // LOGIN existant
-  const login = async (email, mdp) => {
-    const response = await authService.login({ email, mdp });
+  const login = async (email, mdp) => {    const response = await authService.login({ email, mdp });
     const { token: jwtToken, user: userData } = response.data;
 
     localStorage.setItem("token", jwtToken);
@@ -39,6 +38,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     return { token: jwtToken, user: userData };
   };
+
 
   // LOGOUT existant
   const logout = () => {

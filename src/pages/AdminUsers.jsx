@@ -18,7 +18,6 @@ const getStatusLabel = (status) => {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "active" || normalized === "actif") return "Actif";
   if (normalized === "suspended" || normalized === "suspendu") return "Suspendu";
-  if (normalized === "inactive" || normalized === "inactif") return "Inactif";
   return "Inactif";
 };
 
@@ -103,7 +102,7 @@ export default function AdminUsers() {
       setShowModal(false);
     } catch (err) {
       console.error("Erreur création utilisateur:", err);
-      setError(err.message || "Creation utilisateur impossible");
+      setError(err.message || "Création utilisateur impossible");
     } finally {
       setCreating(false);
     }
@@ -131,13 +130,14 @@ export default function AdminUsers() {
       await updateUser(id, { status: nextStatus });
       setUsers((prev) => prev.map((u) => (getId(u) === id ? { ...u, status: nextStatus } : u)));
     } catch (err) {
-      setError(err.message || "Mise a jour du statut impossible");
+      setError(err.message || "Mise à jour du statut impossible");
     } finally {
       setOpenMenu(null);
     }
   };
 
-  const inputCls = "w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition";
+  const inputCls =
+    "w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition";
 
   return (
     <div className="p-6 space-y-6">
@@ -289,22 +289,41 @@ export default function AdminUsers() {
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Nom complet</label>
-                <input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} placeholder="Ex: Ahmed Ben Ali" className={inputCls} />
+                <input
+                  type="text"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  placeholder="Ex: Ahmed Ben Ali"
+                  className={inputCls}
+                />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Email</label>
-                <input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="email@exemple.com" className={inputCls} />
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="email@exemple.com"
+                  className={inputCls}
+                />
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Rôle</label>
-                <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className={inputCls}>
+                <select
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  className={inputCls}
+                >
                   <option>Utilisateur</option>
                   <option>Admin</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowModal(false)} className="flex-1 border border-gray-200 text-gray-500 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 border border-gray-200 text-gray-500 text-sm py-2 rounded-lg hover:bg-gray-50 transition"
+              >
                 Annuler
               </button>
               <button
@@ -312,7 +331,7 @@ export default function AdminUsers() {
                 disabled={creating}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition disabled:opacity-60"
               >
-                {creating ? "Creation..." : "Créer"}
+                {creating ? "Création..." : "Créer"}
               </button>
             </div>
           </div>
