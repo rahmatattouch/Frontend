@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, UserPlus, MoreHorizontal, Shield, ShieldOff, Trash2 } from "lucide-react";
 import { getAllUsers, deleteUser as deleteUserApi, updateUser, createUser } from "../services/authService";
 
-const getId = (u) => u._id || u.id;
+const getId = (u) => u?._id || u?.id;
 
 const getName = (u) => {
-  const fullName = u.name || `${u.prenom || ""} ${u.nom || ""}`.trim();
-  return fullName || u.email || "Utilisateur";
+  const fullName = u?.name || `${u?.prenom || ""} ${u?.nom || ""}`.trim();
+  return fullName || u?.email || "Utilisateur";
 };
 
 const getRoleLabel = (role) => {
@@ -14,11 +14,13 @@ const getRoleLabel = (role) => {
   return normalized === "admin" ? "Admin" : "Utilisateur";
 };
 
+// Backend actuel: pas de "status" dans le model => on affiche Actif par défaut
 const getStatusLabel = (status) => {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "active" || normalized === "actif") return "Actif";
   if (normalized === "suspended" || normalized === "suspendu") return "Suspendu";
-  return "Inactif";
+  if (normalized === "inactive" || normalized === "inactif") return "Inactif";
+  return "Actif";
 };
 
 const roleBadge = (role) => {
@@ -42,10 +44,13 @@ const statusText = (s) => {
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("Tous");
   const [openMenu, setOpenMenu] = useState(null);
+
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "Utilisateur" });
@@ -54,11 +59,18 @@ export default function AdminUsers() {
     try {
       setLoading(true);
       setError("");
+
       const data = await getAllUsers();
+
+      // Supporte 2 formats:
+      // - backend minimal: renvoie un tableau direct [...]
+      // - backend paginé: renvoie { users: [...] }
       const list = Array.isArray(data) ? data : data?.users || [];
+
       setUsers(list);
     } catch (err) {
-      setError(err.message || "Impossible de charger les utilisateurs");
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || "Impossible de charger les utilisateurs");
     } finally {
       setLoading(false);
     }
@@ -68,70 +80,131 @@ export default function AdminUsers() {
     fetchUsers();
   }, []);
 
-  const filtered = users.filter((u) => {
-    const name = getName(u);
-    const role = getRoleLabel(u.role);
-    const matchSearch =
-      name.toLowerCase().includes(search.toLowerCase()) ||
-      String(u.email || "").toLowerCase().includes(search.toLowerCase());
-    const matchRole = filterRole === "Tous" || role === filterRole;
-    return matchSearch && matchRole;
-  });
+  // Fermer le menu quand on clique ailleurs
+  useEffect(() => {
+    const onDocClick = (e) => {
+      const target = e.target;
+      // si click sur un bouton menu, on laisse (sinon on ferme)
+      if (target?.closest?.("[data-user-menu]")) return;
+      setOpenMenu(null);
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    return users.filter((u) => {
+      const name = getName(u).toLowerCase();
+      const email = String(u?.email || "").toLowerCase();
+
+      const role = getRoleLabel(u?.role);
+      const matchSearch = !q || name.includes(q) || email.includes(q);
+      const matchRole = filterRole === "Tous" || role === filterRole;
+
+      return matchSearch && matchRole;
+    });
+  }, [users, search, filterRole]);
 
   const handleCreateUser = async () => {
-    if (!newUser.name || !newUser.email) return;
+    if (!newUser.name.trim() || !newUser.email.trim()) {
+      setError("Nom et email sont obligatoires.");
+      return;
+    }
 
     try {
       setCreating(true);
       setError("");
 
-      const parts = newUser.name.trim().split(" ");
+      // split nom complet -> prenom/nom
+      const parts = newUser.name.trim().split(/\s+/);
       const prenom = parts[0] || "";
       const nom = parts.slice(1).join(" ") || parts[0] || "";
+
       const created = await createUser({
         nom,
         prenom,
-        email: newUser.email,
+        email: newUser.email.trim(),
         role: newUser.role === "Admin" ? "admin" : "user",
-        mdp: "ChangeMe123!",
+        mdp: "ChangeMe123!", // (optionnel) à remplacer par un champ mdp ou envoi email
       });
 
       const createdUser = created?.user || created;
-      setUsers((prev) => [createdUser, ...prev]);
+
+      // certains endpoints renvoient {id: ...} au lieu de {_id: ...}
+      const normalizedCreated =
+        createdUser && !createdUser._id && createdUser.id
+          ? { ...createdUser, _id: createdUser.id }
+          : createdUser;
+
+      if (normalizedCreated?._id) {
+        setUsers((prev) => [normalizedCreated, ...prev]);
+      } else {
+        // fallback: re-fetch
+        await fetchUsers();
+      }
+
       setNewUser({ name: "", email: "", role: "Utilisateur" });
       setShowModal(false);
     } catch (err) {
       console.error("Erreur création utilisateur:", err);
-      setError(err.message || "Création utilisateur impossible");
+      setError(err?.response?.data?.message || err?.message || "Création utilisateur impossible");
     } finally {
       setCreating(false);
     }
   };
 
   const deleteUser = async (id) => {
+    if (!id) return;
+    if (!window.confirm("Supprimer cet utilisateur ?")) return;
+
     try {
+      setBusy(true);
       setError("");
+
       await deleteUserApi(id);
+
       setUsers((prev) => prev.filter((u) => getId(u) !== id));
     } catch (err) {
-      setError(err.message || "Suppression impossible");
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || "Suppression impossible");
     } finally {
+      setBusy(false);
       setOpenMenu(null);
     }
   };
 
+  // Ton backend actuel n'a pas de champ status dans le model User.
+  // Donc ce toggle ne marchera pas vraiment côté DB. Pour "relier" sans casser:
+  // - soit tu ajoutes "status" dans le schema + controller
+  // - soit tu désactives ce bouton
   const toggleStatus = async (user) => {
     const id = getId(user);
+    if (!id) return;
+
+    const hasStatusField = Object.prototype.hasOwnProperty.call(user || {}, "status");
+    if (!hasStatusField) {
+      setError("Le statut n'est pas supporté par la base de données (champ 'status' manquant).");
+      setOpenMenu(null);
+      return;
+    }
+
     const isActive = getStatusLabel(user.status) === "Actif";
     const nextStatus = isActive ? "suspended" : "active";
 
     try {
+      setBusy(true);
       setError("");
+
       await updateUser(id, { status: nextStatus });
+
       setUsers((prev) => prev.map((u) => (getId(u) === id ? { ...u, status: nextStatus } : u)));
     } catch (err) {
-      setError(err.message || "Mise à jour du statut impossible");
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || "Mise à jour du statut impossible");
     } finally {
+      setBusy(false);
       setOpenMenu(null);
     }
   };
@@ -147,6 +220,7 @@ export default function AdminUsers() {
           <h1 className="text-xl font-semibold text-gray-900">Utilisateurs</h1>
           <p className="text-sm text-gray-500 mt-0.5">{users.length} comptes enregistrés</p>
         </div>
+
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition shadow-sm"
@@ -172,6 +246,7 @@ export default function AdminUsers() {
             className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-400 transition"
           />
         </div>
+
         {["Tous", "Admin", "Utilisateur"].map((r) => (
           <button
             key={r}
@@ -185,6 +260,14 @@ export default function AdminUsers() {
             {r}
           </button>
         ))}
+
+        <button
+          onClick={fetchUsers}
+          disabled={loading || busy}
+          className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-700 bg-white disabled:opacity-60"
+        >
+          Rafraîchir
+        </button>
       </div>
 
       {/* Table */}
@@ -203,22 +286,29 @@ export default function AdminUsers() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-50">
               {filtered.map((u) => {
                 const id = getId(u);
                 const name = getName(u);
+
                 const initials = name
                   .split(" ")
+                  .filter(Boolean)
                   .map((n) => n[0])
                   .join("")
                   .slice(0, 2)
                   .toUpperCase();
-                const roleLabel = getRoleLabel(u.role);
-                const statusLabel = getStatusLabel(u.status);
-                const joinedDate = u.createdAt
+
+                const roleLabel = getRoleLabel(u?.role);
+                const statusLabel = getStatusLabel(u?.status);
+
+                const joinedDate = u?.createdAt
                   ? new Date(u.createdAt).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })
-                  : u.joined || "-";
-                const audits = u.audits ?? u.auditCount ?? 0;
+                  : "-";
+
+                // ton backend ne renvoie pas audits count => 0 par défaut
+                const audits = u?.audits ?? u?.auditCount ?? 0;
 
                 return (
                   <tr key={id} className="hover:bg-gray-50 transition relative">
@@ -229,40 +319,53 @@ export default function AdminUsers() {
                         </div>
                         <div>
                           <p className="text-gray-900 font-medium text-sm">{name}</p>
-                          <p className="text-xs text-gray-400">{u.email}</p>
+                          <p className="text-xs text-gray-400">{u?.email || "-"}</p>
                         </div>
                       </div>
                     </td>
+
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-md ${roleBadge(roleLabel)}`}>{roleLabel}</span>
                     </td>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full ${statusDot(statusLabel)}`} />
                         <span className={`text-xs ${statusText(statusLabel)}`}>{statusLabel}</span>
                       </div>
                     </td>
+
                     <td className="px-4 py-3 text-gray-700 text-sm">{audits}</td>
+
                     <td className="px-4 py-3 text-gray-400 text-xs">{joinedDate}</td>
-                    <td className="px-4 py-3 relative">
+
+                    <td className="px-4 py-3 relative" data-user-menu>
                       <button
-                        onClick={() => setOpenMenu(openMenu === id ? null : id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenu(openMenu === id ? null : id);
+                        }}
                         className="text-gray-300 hover:text-gray-600 transition p-1 rounded"
+                        disabled={busy}
                       >
                         <MoreHorizontal size={16} />
                       </button>
+
                       {openMenu === id && (
                         <div className="absolute right-4 top-10 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden w-44">
                           <button
                             onClick={() => toggleStatus(u)}
                             className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-gray-600 hover:bg-gray-50 transition"
+                            disabled={busy}
                           >
                             {statusLabel === "Actif" ? <ShieldOff size={13} /> : <Shield size={13} />}
                             {statusLabel === "Actif" ? "Suspendre" : "Activer"}
                           </button>
+
                           <button
                             onClick={() => deleteUser(id)}
                             className="flex items-center gap-2 w-full px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 transition"
+                            disabled={busy}
                           >
                             <Trash2 size={13} />
                             Supprimer
@@ -276,6 +379,7 @@ export default function AdminUsers() {
             </tbody>
           </table>
         )}
+
         {!loading && filtered.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">Aucun utilisateur trouvé</div>
         )}
@@ -286,6 +390,7 @@ export default function AdminUsers() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Nouvel utilisateur</h2>
+
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Nom complet</label>
@@ -297,6 +402,7 @@ export default function AdminUsers() {
                   className={inputCls}
                 />
               </div>
+
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Email</label>
                 <input
@@ -307,6 +413,7 @@ export default function AdminUsers() {
                   className={inputCls}
                 />
               </div>
+
               <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Rôle</label>
                 <select
@@ -319,6 +426,7 @@ export default function AdminUsers() {
                 </select>
               </div>
             </div>
+
             <div className="flex gap-3 mt-5">
               <button
                 onClick={() => setShowModal(false)}
@@ -326,6 +434,7 @@ export default function AdminUsers() {
               >
                 Annuler
               </button>
+
               <button
                 onClick={handleCreateUser}
                 disabled={creating}
@@ -334,6 +443,11 @@ export default function AdminUsers() {
                 {creating ? "Création..." : "Créer"}
               </button>
             </div>
+
+            <p className="text-[11px] text-gray-400 mt-3">
+              Note: le “statut” (Actif/Suspendu) n’est pas stocké en base actuellement. Si tu veux le supporter, il faut
+              ajouter un champ <code>status</code> dans le modèle User + controller.
+            </p>
           </div>
         </div>
       )}

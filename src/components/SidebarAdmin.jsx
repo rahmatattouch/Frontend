@@ -1,8 +1,32 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { LogOut, ShieldCheck, ShieldAlert, Users, Activity } from "lucide-react";
 
 export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
+
+  // ---- DYNAMIQUE: lire user depuis localStorage ----
+  const me = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const displayName = useMemo(() => {
+    if (!me) return "Admin";
+    const full = `${me.prenom || ""} ${me.nom || ""}`.trim();
+    return full || me.email || "Admin";
+  }, [me]);
+
+  const displayEmail = me?.email || "—";
+
+  const initials = useMemo(() => {
+    const a = (me?.prenom || "").trim()[0] || "";
+    const b = (me?.nom || "").trim()[0] || "";
+    const init = (a + b).toUpperCase();
+    return init || (displayEmail.trim()[0]?.toUpperCase() || "AD");
+  }, [me, displayEmail]);
 
   const menuItems = [
     { key: "dashboard", label: "Dashboard", icon: <ShieldCheck size={16} /> },
@@ -12,13 +36,14 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   ];
 
   return (
-    <aside className={`bg-white border-r border-gray-200 h-screen fixed transition-all duration-300 ${collapsed ? "w-20" : "w-60"}`}>
+    <aside
+      className={`bg-white border-r border-gray-200 h-screen fixed transition-all duration-300 ${
+        collapsed ? "w-20" : "w-60"
+      }`}
+    >
       {/* Toggle button */}
       <div className="flex justify-end p-2">
-        <button
-          className="text-gray-400 hover:text-gray-800"
-          onClick={() => setCollapsed(!collapsed)}
-        >
+        <button className="text-gray-400 hover:text-gray-800" onClick={() => setCollapsed(!collapsed)}>
           {collapsed ? "→" : "←"}
         </button>
       </div>
@@ -30,7 +55,9 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
             key={item.key}
             onClick={() => setActivePage(item.key)}
             className={`flex items-center w-full p-3 gap-3 text-sm font-medium hover:bg-gray-100 transition ${
-              activePage === item.key ? "bg-green-50 text-green-700 border-l-4 border-green-500" : "text-gray-700"
+              activePage === item.key
+                ? "bg-green-50 text-green-700 border-l-4 border-green-500"
+                : "text-gray-700"
             }`}
           >
             {item.icon}
@@ -40,20 +67,23 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
       </nav>
 
       {/* Admin profile + logout */}
-      <div className={`absolute bottom-0 w-full px-3 py-4 border-t border-gray-200 flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+      <div
+        className={`absolute bottom-0 w-full px-3 py-4 border-t border-gray-200 flex items-center gap-3 ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
         <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-          AD
+          {initials}
         </div>
+
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 truncate">Admin</p>
-            <p className="text-[11px] text-gray-400 truncate">admin@gmail.com</p>
+            <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
+            <p className="text-[11px] text-gray-400 truncate">{displayEmail}</p>
           </div>
         )}
-        <button
-          onClick={onLogout}
-          className="text-gray-300 hover:text-red-500 transition"
-        >
+
+        <button onClick={onLogout} className="text-gray-300 hover:text-red-500 transition">
           <LogOut size={15} />
         </button>
       </div>

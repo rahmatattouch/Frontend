@@ -1,6 +1,5 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
-import * as authService from "../services/authService"; // ton service axios existant
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import * as authService from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -9,15 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Vérifie si l'utilisateur est déjà connecté
+  // Charger session depuis localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
     if (storedToken && storedUser) {
       try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+        setUser(JSON.parse(storedUser));
         setToken(storedToken);
       } catch {
         localStorage.removeItem("token");
@@ -27,8 +25,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // LOGIN existant
-  const login = async (email, mdp) => {    const response = await authService.login({ email, mdp });
+  const login = async (email, mdp) => {
+    const response = await authService.login({ email, mdp });
     const { token: jwtToken, user: userData } = response.data;
 
     localStorage.setItem("token", jwtToken);
@@ -36,11 +34,10 @@ export const AuthProvider = ({ children }) => {
 
     setToken(jwtToken);
     setUser(userData);
+
     return { token: jwtToken, user: userData };
   };
 
-
-  // LOGOUT existant
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -48,25 +45,24 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
   };
 
-  // ✅ NOUVEAU : REGISTER
+  /**
+   * REGISTER
+   * - accepte un objet JSON {nom, prenom, email, mdp}
+   * - ou un FormData (si tu envoies image)
+   */
   const register = async (data) => {
-    try {
-      // data = { nom, prenom, email, mdp }
-      const response = await authService.register(data); // service axios vers /api/register
-      // Si tu veux, tu peux directement connecter l'utilisateur après l'inscription
-      // setUser(response.data.user);
-      return response.data;
-    } catch (err) {
-      throw new Error(err.response?.data?.message || "Registration failed");
-    }
-  };
-
-  const isAuthenticated = !!token;
+  try {
+    const response = await authService.register(data);
+    return response.data;
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.message || "Registration failed";
+    throw new Error(msg);
+  }
+};
+  const isAuthenticated = useMemo(() => !!token, [token]);
 
   return (
-    <AuthContext.Provider
-      value={{ user, token, loading, login, logout, isAuthenticated, register }}
-    >
+    <AuthContext.Provider value={{ user, token, loading, login, logout, isAuthenticated, register }}>
       {children}
     </AuthContext.Provider>
   );

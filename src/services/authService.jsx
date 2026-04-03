@@ -1,109 +1,128 @@
-
 import axios from "axios";
 
+/**
+ * Base URL
+ * - VITE_API_URL doit être comme: http://localhost:5000
+ */
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const USERS_API_URL = `${BASE_URL}/api/users`;
-const API_BASE = `${BASE_URL}/api`;
 
+/**
+ * API Roots
+ * Ton backend expose déjà: /api/users/...
+ */
+const API_BASE = `${BASE_URL}/api`;
+const USERS_API_URL = `${API_BASE}/users`;
+
+/**
+ * Petit helper pour récupérer le token
+ */
+const getToken = () => localStorage.getItem("token");
+
+/**
+ * Wrapper fetch JSON (avec Bearer token)
+ */
 const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE}${endpoint}`;
-  const token = localStorage.getItem('token');
+  const token = getToken();
 
   const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(options.headers || {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  // Réponse (peut être vide)
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = data?.message || `HTTP Error: ${response.status}`;
+    throw new Error(message);
   }
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
-    const errorData = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      console.error("STATUS:", response.status);
-      console.error("BACKEND MESSAGE:", errorData);
-      throw new Error(errorData.message || `HTTP Error: ${response.status}`);
-    }
-
-    return errorData;
-  } catch (error) {
-    console.error(`API Error at ${endpoint}:`, error);
-    throw error;
-  }
+  return data;
 };
 
+// ---------------- Auth (axios) ----------------
+// (on garde axios ici car tu l'utilises déjà côté login/register)
+export const register = (data) => axios.post(`${USERS_API_URL}/register`, data);
+export const login = ({ email, mdp }) => axios.post(`${USERS_API_URL}/login`, { email, mdp });
 
+// ---------------- Users ----------------
 
-export const register = (data) => {
-  return axios.post(`${USERS_API_URL}/register`, data);
-};
-
-export const login = ({ email, mdp }) => {
-  return axios.post(`${USERS_API_URL}/login`, { email, mdp });
-};
-
+/**
+ * IMPORTANT:
+ * Tu n'as pas /api/users/me dans tes routes actuelles (sauf si tu l'as ailleurs).
+ * Donc je le laisse, mais il ne marchera que si tu ajoutes la route côté backend.
+ */
 export const getCurrentUser = async () => {
-  return apiCall('/users/me', {
-    method: 'GET',
-  });
+  return apiCall("/users/me", { method: "GET" });
 };
 
+/**
+ * ADMIN USERS LIST
+ * Backend: GET /api/users/admin/users
+ * => c'est LA correction qui débloque l'affichage dans AdminUsers.
+ */
 export const getAllUsers = async () => {
-  return apiCall('/users', {
-    method: 'GET',
-  });
+  return apiCall("/users/admin/users", { method: "GET" });
 };
 
+/**
+ * CREATE USER (ADMIN)
+ * Backend: POST /api/users/ajouter
+ * (pas /register, car register est public et peut avoir upload image)
+ */
 export const createUser = async (userData) => {
-  return apiCall('/users/register', {
-    method: 'POST',
+  return apiCall("/users/ajouter", {
+    method: "POST",
     body: JSON.stringify(userData),
   });
 };
 
+/**
+ * UPDATE USER
+ * Backend: PUT /api/users/:id
+ */
 export const updateUser = async (userId, userData) => {
   return apiCall(`/users/${userId}`, {
-    method: 'PUT',
+    method: "PUT",
     body: JSON.stringify(userData),
   });
 };
 
+/**
+ * DELETE USER (ADMIN)
+ * Backend: DELETE /api/users/:id
+ */
 export const deleteUser = async (userId) => {
-  return apiCall(`/users/${userId}`, {
-    method: 'DELETE',
-  });
+  return apiCall(`/users/${userId}`, { method: "DELETE" });
 };
-
 
 export const getUserById = async (userId) => {
-  return apiCall(`/users/${userId}`, {
-    method: 'GET',
-  });
+  return apiCall(`/users/${userId}`, { method: "GET" });
+};
+ export const getAllAuditsAdmin = async () => {
+  return apiCall("/users/admin/audits", { method: "GET" });
 };
 
+// ---------------- Autres endpoints (si ils existent vraiment côté backend) ----------------
+// NOTE: ces routes ne sont pas dans le userRoutes que tu m'as montré.
+// Garde-les seulement si tu as bien les endpoints côté serveur.
+export const getVulnerabilities = async () => apiCall("/users/vulnerabilities", { method: "GET" });
+export const getLabs = async () => apiCall("/users/labs", { method: "GET" });
+export const getStatistics = async () => apiCall("/users/statistics", { method: "GET" });
+export const getPlatformStats = async () => apiCall("/users/stats/platform", { method: "GET" });
 
-export const getVulnerabilities = async () => {
-  return apiCall('/users/vulnerabilities', {
-    method: 'GET',
-  });
-};
-
-export const getLabs = async () => {
-  return apiCall('/users/labs', {
-    method: 'GET',
-  });
-};
-
+// ---------------- Audit launch ----------------
 export const analyzeSite = async (url, mode) => {
   try {
-    const response = await axios.post("http://localhost:5000/api/audit/launch", {
+    // utilise BASE_URL (au lieu de hardcoder localhost)
+    const response = await axios.post(`${BASE_URL}/api/audit/launch`, {
       targetUrl: url,
       intensity: mode, // rapide | standard | approfondi
     });
@@ -113,19 +132,6 @@ export const analyzeSite = async (url, mode) => {
     throw err;
   }
 };
-
-export const getStatistics = async () => {
-  return apiCall('/users/statistics', {
-    method: 'GET',
-  });
-};
-
-export const getPlatformStats = async () => {
-  return apiCall('/users/stats/platform', {
-    method: 'GET',
-  });
-};
-
 const authService = {
   register,
   login,
@@ -140,6 +146,7 @@ const authService = {
   analyzeSite,
   getStatistics,
   getPlatformStats,
+  getAllAuditsAdmin
 };
 
 export default authService;
