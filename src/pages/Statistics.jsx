@@ -4,58 +4,18 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart,
   PolarGrid, PolarAngleAxis, Radar
 } from "recharts";
-import { getStatistics } from "../services/authService";
+import { getStatistics,getStatisticsTotals } from "../services/authService";
 
-const defaultScoreHistory = [
-  { month: "Oct", score: 55 },
-  { month: "Nov", score: 61 },
-  { month: "Déc", score: 58 },
-  { month: "Jan", score: 65 },
-  { month: "Fév", score: 69 },
-  { month: "Mar", score: 71 },
-];
-
-const defaultVulnsByType = [
-  { name: "En-têtes manquants", count: 18 },
-  { name: "SSL/TLS", count: 7 },
-  { name: "XSS / Injection", count: 5 },
-  { name: "Config serveur", count: 9 },
-  { name: "Cookies", count: 4 },
-  { name: "Redirections", count: 4 },
-];
-
-const defaultRiskDistrib = [
-  { name: "Faible", value: 12, color: "#16a34a" },
-  { name: "Moyen", value: 8, color: "#eab308" },
-  { name: "Élevé", value: 5, color: "#f97316" },
-  { name: "Critique", value: 3, color: "#ef4444" },
-];
-
-const defaultRadarData = [
-  { subject: "SSL/TLS", score: 90 },
-  { subject: "En-têtes", score: 55 },
-  { subject: "Cookies", score: 70 },
-  { subject: "Redirections", score: 85 },
-  { subject: "Serveur", score: 60 },
-  { subject: "Contenu", score: 75 },
-];
-
-const defaultScansPerMonth = [
-  { month: "Oct", scans: 3 },
-  { month: "Nov", scans: 4 },
-  { month: "Déc", scans: 2 },
-  { month: "Jan", scans: 5 },
-  { month: "Fév", scans: 7 },
-  { month: "Mar", scans: 7 },
-];
-
+// Tooltip personnalisé
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs shadow-sm">
         <p className="text-gray-500 mb-0.5">{label}</p>
         {payload.map((p, i) => (
-          <p key={i} style={{ color: p.color || "#16a34a" }} className="font-medium">{p.name || p.dataKey}: {p.value}</p>
+          <p key={i} style={{ color: p.color || "#16a34a" }} className="font-medium">
+            {p.name || p.dataKey}: {p.value}
+          </p>
         ))}
       </div>
     );
@@ -63,6 +23,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// Carte récapitulative
 function StatCard({ label, value, sub, color = "green" }) {
   const c = {
     green: "text-green-700 bg-green-50 border-green-200",
@@ -80,36 +41,79 @@ function StatCard({ label, value, sub, color = "green" }) {
 }
 
 export default function Statistics() {
-  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    scoreHistory: [],
+    vulnsByType: [],
+    riskDistrib: [],
+    radarData: [],
+    scansPerMonth: [],
+    topSites: [],
+    totalScans: 0,
+    totalVulns: 0,
+    avgScore: 0,
+    successRate: 0
+  });
 
   useEffect(() => {
-    getStatistics()
-      .then((data) => setStats(data))
-      .catch((err) => {
-        console.error("Erreur chargement statistiques:", err);
-        setStats(null);
-      });
-  }, []);
+  const fetchStats = async () => {
+    try {
+      const [totals, full] = await Promise.all([
+        getStatisticsTotals(), // ⚡ endpoint /stats/totals
+        getStatistics()        // ⚡ endpoint /stats/full
+      ]);
 
-  const scoreHistory = stats?.scoreHistory || defaultScoreHistory;
-  const vulnsByType = stats?.vulnsByType || defaultVulnsByType;
-  const riskDistrib = (stats?.riskDistrib || defaultRiskDistrib).map((d, i) => ({
+      setStats({
+        ...full,
+        totalScans: totals.totalScans || 0,
+        totalVulns: totals.totalVulns || 0,
+        avgScore: totals.avgScore || 0,
+        securedSites: totals.securedSites || 0,
+      });
+
+    } catch (err) {
+      console.error("Erreur chargement statistiques:", err);
+      setStats({
+        scoreHistory: [],
+        vulnsByType: [],
+        riskDistrib: [],
+        radarData: [],
+        scansPerMonth: [],
+        topSites: [],
+        totalScans: 0,
+        totalVulns: 0,
+        avgScore: 0,
+        successRate: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchStats();
+}, []);
+  if (loading) {
+    return <p className="p-6 text-gray-500">Chargement des statistiques...</p>;
+  }
+
+  const {
+    scoreHistory,
+    vulnsByType,
+    riskDistrib,
+    radarData,
+    scansPerMonth,
+    topSites,
+    totalScans,
+    totalVulns,
+    avgScore,
+    successRate
+  } = stats;
+
+  // Assurer que chaque entrée de riskDistrib a une couleur
+  const riskDataWithColors = (riskDistrib || []).map((d, i) => ({
     ...d,
     color: d.color || ["#16a34a", "#eab308", "#f97316", "#ef4444"][i % 4],
   }));
-  const radarData = stats?.radarData || defaultRadarData;
-  const scansPerMonth = stats?.scansPerMonth || defaultScansPerMonth;
-  const topSites = stats?.topSites || [
-    { site: "myshop.tn", scans: 8, avgScore: 79, trend: "+5" },
-    { site: "api.myapp.io", scans: 6, avgScore: 60, trend: "-2" },
-    { site: "blog.perso.fr", scans: 5, avgScore: 88, trend: "+8" },
-    { site: "old-portal.tn", scans: 4, avgScore: 42, trend: "+3" },
-    { site: "dev.startup.io", scans: 3, avgScore: 67, trend: "0" },
-  ];
-  const totalScans = stats?.totalScans ?? 28;
-  const totalVulns = stats?.totalVulns ?? 47;
-  const avgScore = stats?.avgScore ?? 71;
-  const successRate = stats?.successRate ?? 68;
 
   return (
     <div className="p-6 space-y-6">
@@ -145,7 +149,7 @@ export default function Statistics() {
           <p className="text-sm font-medium text-gray-900 mb-1">Scans effectués par mois</p>
           <p className="text-xs text-gray-400 mb-4">Volume d'activité mensuel</p>
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={scansPerMonth} barSize={16}>
+            <BarChart data={scansPerMonth}>
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
@@ -162,7 +166,7 @@ export default function Statistics() {
           <p className="text-sm font-medium text-gray-900 mb-1">Vulnérabilités par type</p>
           <p className="text-xs text-gray-400 mb-4">Catégories les plus fréquentes</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={vulnsByType} layout="vertical" barSize={10}>
+            <BarChart data={vulnsByType}>
               <XAxis type="number" tick={{ fontSize: 10, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} width={110} />
               <Tooltip content={<CustomTooltip />} />
@@ -177,12 +181,12 @@ export default function Statistics() {
           <p className="text-xs text-gray-400 mb-4">Sur l'ensemble des scans</p>
           <div className="flex flex-col items-center">
             <PieChart width={150} height={150}>
-              <Pie data={riskDistrib} cx={70} cy={70} innerRadius={45} outerRadius={68} dataKey="value" stroke="none">
-                {riskDistrib.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              <Pie data={riskDataWithColors} cx={70} cy={70} innerRadius={45} outerRadius={68} dataKey="value" stroke="none">
+                {riskDataWithColors.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Pie>
             </PieChart>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 w-full">
-              {riskDistrib.map((d) => (
+              {riskDataWithColors.map((d) => (
                 <div key={d.name} className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
                   <span className="text-xs text-gray-500">{d.name}</span>
@@ -211,11 +215,11 @@ export default function Statistics() {
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <p className="text-sm font-medium text-gray-900 mb-4">Sites les plus analysés</p>
         <div className="space-y-3">
-          {topSites.map((s, i) => (
+          {(topSites || []).map((s, i) => (
             <div key={i} className="flex items-center gap-4 py-2 border-b border-gray-50">
               <span className="text-xs text-gray-400 w-6 text-right">{i + 1}</span>
               <span className="flex-1 text-sm text-gray-900 font-medium">{s.site}</span>
-              <span className="text-xs text-gray-400">{s.scans} scans</span>
+              <span className="text-xs text-gray-400">{s.scans}</span>
               <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{
                   width: `${s.avgScore}%`,

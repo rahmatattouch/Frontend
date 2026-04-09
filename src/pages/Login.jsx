@@ -96,8 +96,8 @@ export default function Login() {
                 />
                 <span>Remember me</span>
               </label>
-              <Link to="#" className="hover:text-[#10b981]">
-                Forgot password?
+              <Link to="/forgot-password" className="hover:text-[#10b981]">
+                      Forgot password?
               </Link>
             </div>
 

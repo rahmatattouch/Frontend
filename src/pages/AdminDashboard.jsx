@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import SidebarAdmin from "../components/SidebarAdmin";
 import AdminUsers from "./AdminUsers";
 import AdminAudits from "./AdminAudits";
 import AdminSettings from "./AdminSettings";
-import { ShieldCheck, ShieldAlert, Users, Activity, TrendingUp } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Users, Activity, TrendingUp, Bell } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -40,21 +40,24 @@ export default function AdminDashboard() {
     return "Inconnu";
   };
 
-  // Convertit score en entier 0..100 (gère string/null et score sur 10)
   const normalizeScore = (s) => {
     const n = Number(s);
     if (!Number.isFinite(n)) return 0;
-
-    // Si score sur 10 => convertir en %
     if (n >= 0 && n <= 10) return Math.max(0, Math.min(100, Math.round(n * 10)));
-
-    // Sinon clamp 0..100
     return Math.max(0, Math.min(100, Math.round(n)));
   };
 
   const scoreColor = (score) => {
     const s = normalizeScore(score);
     return s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
+  };
+
+  // ✅ AJOUT MINIMAL: ton code l'utilise dans setRecentAudits
+  const toYYYYMMDD = (d) => {
+    if (!d) return "—";
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return "—";
+    return dt.toISOString().slice(0, 10);
   };
 
   const RISK_COLORS = useMemo(
@@ -87,6 +90,18 @@ export default function AdminDashboard() {
   const [pieData, setPieData] = useState([]);
   const [recentAudits, setRecentAudits] = useState([]);
 
+  // ✅ Notifications admin (in-app)
+  const [notifications, setNotifications] = useState([]);
+
+  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+
+  const notifItemCls = (level) =>
+    ({
+      critical: "bg-red-50 border-red-200 text-red-700",
+      warning: "bg-yellow-50 border-yellow-200 text-yellow-700",
+      info: "bg-green-50 border-green-200 text-green-700",
+    }[level] || "bg-gray-50 border-gray-200 text-gray-700");
+
   // ---------- Fetch dashboard ----------
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -96,35 +111,57 @@ export default function AdminDashboard() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const data = res.data;
+        const data = res.data || {};
 
-        // Stats dynamiques
+        const weekly = Array.isArray(data.auditsWeekly) ? data.auditsWeekly : [];
+        const computedVulnsTotal = weekly.reduce((sum, d) => sum + (Number(d?.vulns) || 0), 0);
+
+        const computedMonthly = (() => {
+          if (Array.isArray(data.auditsMonthly) && data.auditsMonthly.length > 0) return data.auditsMonthly;
+          const totalWeekAudits = weekly.reduce((sum, d) => sum + (Number(d?.audits) || 0), 0);
+          const label = new Date().toLocaleDateString("fr-FR", { month: "short" });
+          return [{ month: label, value: totalWeekAudits }];
+        })();
+
+        const computedRiskDistribution = (() => {
+          const recent = Array.isArray(data.recentAudits) ? data.recentAudits : [];
+          if (recent.length === 0) return [];
+          const counts = recent.reduce((acc, a) => {
+            const r = normalizeRiskLabel(a?.risk);
+            acc[r] = (acc[r] || 0) + 1;
+            return acc;
+          }, {});
+          return Object.entries(counts).map(([name, value]) => ({ name, value }));
+        })();
+
         setStats([
           { label: "Audits Total", value: data.audits ?? 0, change: "", icon: ShieldCheck, color: "green" },
-          { label: "Vulnérabilités", value: data.alerts ?? 0, change: "", icon: ShieldAlert, color: "red" },
+          {
+            label: "Vulnérabilités",
+            value: data.alerts && Number(data.alerts) > 0 ? data.alerts : computedVulnsTotal,
+            change: "",
+            icon: ShieldAlert,
+            color: "red",
+          },
           { label: "Utilisateurs", value: data.users ?? 0, change: "", icon: Users, color: "green" },
           { label: "En cours", value: data.auditsInProgress ?? 0, change: "actifs", icon: Activity, color: "amber" },
         ]);
 
-        // Graphiques dynamiques
-        setLineData(Array.isArray(data.auditsWeekly) ? data.auditsWeekly : []);
-        setBarData(Array.isArray(data.auditsMonthly) ? data.auditsMonthly : []);
+        setLineData(weekly);
+        setBarData(computedMonthly);
 
-        // PIE: backend idéalement renvoie déjà {name: "Critique"/"Élevé"/..., value: % }
-        const rawRisk = Array.isArray(data.riskDistribution) ? data.riskDistribution : [];
+        const rawRisk =
+          Array.isArray(data.riskDistribution) && data.riskDistribution.length > 0
+            ? data.riskDistribution
+            : computedRiskDistribution;
+
         const pie = rawRisk
           .map((r) => {
             const rawName = r?.name ?? r?._id;
             const name = normalizeRiskLabel(rawName);
             const value = Number(r?.value ?? r?.count ?? 0) || 0;
-
-            return {
-              name,
-              value,
-              color: RISK_COLORS[name] || "#9ca3af",
-            };
+            return { name, value, color: RISK_COLORS[name] || "#9ca3af" };
           })
-          // regroupe doublons
           .reduce((acc, cur) => {
             const found = acc.find((x) => x.name === cur.name);
             if (found) found.value += cur.value;
@@ -133,16 +170,24 @@ export default function AdminDashboard() {
           }, [])
           .filter((x) => x.value > 0);
 
-        setPieData(pie);
+        const totalPie = pie.reduce((s, x) => s + x.value, 0) || 1;
+        const piePct = pie.map((x) => ({ ...x, value: Math.round((x.value / totalPie) * 100) }));
+        setPieData(piePct);
 
-        // Derniers audits: normaliser risk + score (pour couleurs correctes)
+        // ✅ CORRECTION UNIQUEMENT ICI: recent audits robustes (site/score/risk/status/date)
+        // - Ne dépend pas de "helpers" backend
+        // - Supporte les variations: site/urlCible, status/statut, score/scoreGlobal/rapport.scoreGlobal
         const recent = Array.isArray(data.recentAudits) ? data.recentAudits : [];
         setRecentAudits(
-          recent.map((a) => ({
-            ...a,
-            risk: normalizeRiskLabel(a.risk),
-            score: normalizeScore(a.score),
-          }))
+          recent.map((a) => {
+            const site = a?.site || a?.urlCible || a?.targetUrl || "—";
+            const rawScore = a?.score ?? a?.scoreGlobal ?? a?.rapport?.scoreGlobal ?? 0;
+            const risk = normalizeRiskLabel(a?.risk); // si backend le calcule => parfait, sinon "Inconnu"
+            const status = a?.status || a?.statut || "—";
+            const date = a?.date ? toYYYYMMDD(a.date) : "—";
+
+            return { ...a, site, score: normalizeScore(rawScore), risk, status, date };
+          })
         );
       } catch (err) {
         console.error("Erreur fetch dashboard:", err);
@@ -151,6 +196,37 @@ export default function AdminDashboard() {
 
     fetchDashboard();
   }, [RISK_COLORS]);
+
+  // ✅ Fetch notifications admin
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get("http://localhost:5000/api/admin/notifications", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications(Array.isArray(res.data.notifications) ? res.data.notifications : []);
+    } catch (err) {
+      console.error("Erreur fetch notifications:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const markNotifRead = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        `http://localhost:5000/api/admin/notifications/${id}/read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchNotifications();
+    } catch (err) {
+      console.error("Erreur mark read:", err);
+    }
+  };
 
   // ---------- UI helpers ----------
   const colorMap = {
@@ -243,7 +319,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Bar chart + Recent audits */}
+            {/* Bar chart + Alerts + Recent audits */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <p className="text-sm font-medium text-gray-900 mb-1">Audits par mois</p>
@@ -257,10 +333,63 @@ export default function AdminDashboard() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-4">
+              {/* Alertes */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Bell size={14} className="text-gray-500" />
+                    <p className="text-sm font-medium text-gray-900">Alertes récentes</p>
+                  </div>
+                  <span className="text-xs text-gray-400">{unreadCount} non lues</span>
+                </div>
+
+                <div className="space-y-2">
+                  {notifications.length === 0 ? (
+                    <div className="text-xs text-gray-400">Aucune notification</div>
+                  ) : (
+                    notifications.slice(0, 6).map((n) => (
+                      <button
+                        key={n._id}
+                        type="button"
+                        onClick={() => !n.read && markNotifRead(n._id)}
+                        className={`w-full text-left flex items-start gap-3 p-3 rounded-lg border text-xs transition hover:opacity-90 ${notifItemCls(
+                          n.level
+                        )} ${n.read ? "opacity-70" : ""}`}
+                        title={n.read ? "Lu" : "Cliquer pour marquer comme lu"}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                            n.level === "critical"
+                              ? "bg-red-500"
+                              : n.level === "warning"
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
+                          }`}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">{n.title}</div>
+                          <div className="mt-0.5">{n.message}</div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <div className="mt-3 flex gap-2">
+                  <button type="button" onClick={fetchNotifications} className="text-xs text-green-600 hover:underline">
+                    Rafraîchir
+                  </button>
+                </div>
+              </div>
+
+              {/* Recent audits */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm font-medium text-gray-900">Derniers audits</p>
-                  <button className="text-xs text-green-600 hover:underline">Voir tout →</button>
+                  {/* ✅ on laisse ton comportement, juste une vraie navigation */}
+                  <Link className="text-xs text-green-600 hover:underline" to="/AdminAudits">
+                    Voir tout →
+                  </Link>
                 </div>
 
                 <table className="w-full text-xs">

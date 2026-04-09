@@ -15,8 +15,9 @@ import UsersPage from "./pages/UsersPage";
 import './App.css';
 import AdminAudits from './pages/AdminAudits';
 import AdminUsers from './pages/AdminUsers';
-
 import AdminSettings from './pages/AdminSettings';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 function App() {
   return (
     <GlobalProvider>
@@ -38,6 +39,8 @@ function App() {
             <Route path="/AdminSettings" element={<AdminSettings />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} /> 
           </Routes>
         </AuthProvider>
       </Router>
