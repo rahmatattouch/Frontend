@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { LogOut, ShieldCheck, ShieldAlert, Users, Activity } from "lucide-react";
+import { LogOut, ShieldCheck, ShieldAlert, Users, Activity, Bell } from "lucide-react";
 
 export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  // ✅ missing state (sinon crash après merge)
+  // ✅ notifications unread
   const [unreadCount, setUnreadCount] = useState(0);
 
   const me = useMemo(() => {
@@ -31,19 +31,15 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     return init || (displayEmail.trim()[0]?.toUpperCase() || "AD");
   }, [me, displayEmail]);
 
+  // ✅ plus de badge sur "Audits"
   const menuItems = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: <ShieldCheck size={16} /> },
       { key: "users", label: "Utilisateurs", icon: <Users size={16} /> },
-      {
-        key: "audits",
-        label: "Audits",
-        icon: <ShieldAlert size={16} />,
-        badge: unreadCount > 0 ? unreadCount : null,
-      },
+      { key: "audits", label: "Audits", icon: <ShieldAlert size={16} /> },
       { key: "settings", label: "Paramètres", icon: <Activity size={16} /> },
     ],
-    [unreadCount]
+    []
   );
 
   // ✅ Fetch notifications periodically
@@ -107,23 +103,12 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
             }`}
           >
             {item.icon}
-
-            {!collapsed && (
-              <div className="flex items-center justify-between w-full">
-                <span>{item.label}</span>
-
-                {item.badge ? (
-                  <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
-                    {item.badge}
-                  </span>
-                ) : null}
-              </div>
-            )}
+            {!collapsed && <span>{item.label}</span>}
           </button>
         ))}
       </nav>
 
-      {/* Admin profile + logout */}
+      {/* Admin profile + alerts + logout */}
       <div
         className={`absolute bottom-0 w-full px-3 py-4 border-t border-gray-200 flex items-center gap-3 ${
           collapsed ? "justify-center" : ""
@@ -137,8 +122,23 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
             <p className="text-[11px] text-gray-400 truncate">{displayEmail}</p>
+
+            {/* ✅ badge alerts sous le profile */}
+            {unreadCount > 0 && (
+              <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 w-fit">
+                <Bell size={12} />
+                {unreadCount} alerte{unreadCount > 1 ? "s" : ""}
+              </div>
+            )}
           </div>
         )}
+
+        {/* ✅ si sidebar collapsed, on montre juste l’icône + badge en petit */}
+        {collapsed && unreadCount > 0 ? (
+          <div className="absolute bottom-14 right-3 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+            {unreadCount}
+          </div>
+        ) : null}
 
         <button type="button" onClick={onLogout} className="text-gray-300 hover:text-red-500 transition">
           <LogOut size={15} />

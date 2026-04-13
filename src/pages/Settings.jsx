@@ -284,20 +284,11 @@ export default function Settings() {
             <Field label="Scan terminé" desc="Recevoir un email à la fin de chaque analyse">
               <Toggle value={notifs.emailScanComplete} onChange={(v) => setNotifs({ ...notifs, emailScanComplete: v })} />
             </Field>
-            <Field label="Vulnérabilité critique détectée" desc="Alerte immédiate par email">
-              <Toggle value={notifs.emailCritical} onChange={(v) => setNotifs({ ...notifs, emailCritical: v })} />
-            </Field>
-            <Field label="Récapitulatif hebdomadaire" desc="Résumé de votre activité chaque lundi">
-              <Toggle value={notifs.emailWeekly} onChange={(v) => setNotifs({ ...notifs, emailWeekly: v })} />
-            </Field>
             <div className="py-3 border-b border-gray-100 mb-1 mt-2">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dans l'application</p>
             </div>
             <Field label="Alertes de sécurité" desc="Notifications dans la barre latérale">
               <Toggle value={notifs.inAppAlerts} onChange={(v) => setNotifs({ ...notifs, inAppAlerts: v })} />
-            </Field>
-            <Field label="Fin d'analyse" desc="Notification quand un scan est terminé">
-              <Toggle value={notifs.inAppScanDone} onChange={(v) => setNotifs({ ...notifs, inAppScanDone: v })} />
             </Field>
           </>
         );
@@ -337,16 +328,6 @@ export default function Settings() {
                   </button>
                 </div>
               </div>
-
-              <div className="py-3 border-b border-gray-100 mb-1 mt-2">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Options de sécurité</p>
-              </div>
-              <Field label="Authentification à deux facteurs" desc="Renforce la sécurité de votre compte">
-                <Toggle value={security.mfa} onChange={(v) => setSecurity({ ...security, mfa: v })} />
-              </Field>
-              <Field label="Alerte de session" desc="Être notifié lors d'une nouvelle connexion">
-                <Toggle value={security.sessionAlert} onChange={(v) => setSecurity({ ...security, sessionAlert: v })} />
-              </Field>
             </div>
           </>
         );

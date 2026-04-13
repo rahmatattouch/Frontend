@@ -144,7 +144,22 @@ export const getAdminAuditReport = async (auditId) => {
   if (!auditId) throw new Error("auditId manquant");
   return apiCall(`/users/admin/audits/${auditId}/report`, { method: "GET" });
 };
+// ---------------- Audits (create + complete to trigger email) ----------------
 
+export const createAudit = async (adresse) =>
+  apiCall("/audits", {
+    method: "POST",
+    body: JSON.stringify({ adresse }),
+  });
+
+export const completeAudit = async (auditId, scoreGlobal) => {
+  if (!auditId) throw new Error("completeAudit: auditId manquant");
+
+  return apiCall(`/audits/${auditId}/complete`, {
+    method: "PUT",
+    body: JSON.stringify({ scoreGlobal }),
+  });
+};
 const authService = {
   register,
   login,
@@ -156,7 +171,7 @@ const authService = {
   deleteUser,
   getUserById,
   getVulnerabilities,
-  getLabs, // ✅ AJOUT
+  getLabs, 
   analyzeSite,
   getStatistics,
   getStatisticsTotals,
@@ -166,6 +181,8 @@ const authService = {
   getUserId,
   getAllAuditsAdmin,
   getAdminAuditReport,
+  createAudit,
+  completeAudit,
 };
 
 export default authService;
