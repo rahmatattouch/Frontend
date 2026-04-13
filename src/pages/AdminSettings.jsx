@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Save, RefreshCw, Bell, Lock, Server } from "lucide-react";
-import { getAdminSettings, updateAdminSettings } from "../services/settingsService";
+import {
+  getAdminSettings,
+  updateAdminSettings,
+} from "../services/settingsService";
 
 const sections = [
   { id: "general", label: "Général", icon: Server },
@@ -53,11 +56,16 @@ export default function AdminSettings() {
     maintenanceMode: false,
   });
 
+  // ✅ correction: séparer rapport d'audit / alertes dashboard
   const [notifs, setNotifs] = useState({
     emailCritical: true,
     emailReport: true,
-    inAppAlert: true,
     weeklyDigest: false,
+
+    // NEW (séparés)
+    auditReportEnabled: true, // envoi/activation rapport d’audit (si tu veux ce toggle)
+    inAppAlert: true, // alertes dans le dashboard
+    auditEmailToAdmin: false, // email admin quand audit terminé (si tu veux ce toggle)
   });
 
   // ✅ MFA supprimé
@@ -76,12 +84,24 @@ export default function AdminSettings() {
       setError("");
 
       const res = await getAdminSettings();
-      const settings = res.data.settings;
+      const settings = res?.data?.settings;
 
       if (settings?.general) setGeneral(settings.general);
-      if (settings?.notifications) setNotifs(settings.notifications);
+
+      if (settings?.notifications) {
+        // ✅ IMPORTANT: merge avec defaults pour éviter undefined
+        setNotifs((prev) => ({
+          ...prev,
+          ...settings.notifications,
+          auditReportEnabled:
+            settings.notifications.auditReportEnabled ?? prev.auditReportEnabled,
+          inAppAlert: settings.notifications.inAppAlert ?? prev.inAppAlert,
+          auditEmailToAdmin:
+            settings.notifications.auditEmailToAdmin ?? prev.auditEmailToAdmin,
+        }));
+      }
+
       if (settings?.security) {
-        // on garde uniquement les champs existants, même si la DB contient encore security.mfa
         setSecurity({
           sessionTimeout: settings.security.sessionTimeout ?? 60,
           rateLimit: settings.security.rateLimit ?? 100,
@@ -114,8 +134,12 @@ export default function AdminSettings() {
         notifications: {
           emailCritical: Boolean(notifs.emailCritical),
           emailReport: Boolean(notifs.emailReport),
-          inAppAlert: Boolean(notifs.inAppAlert),
           weeklyDigest: Boolean(notifs.weeklyDigest),
+
+          // ✅ nouveaux champs séparés
+          auditReportEnabled: Boolean(notifs.auditReportEnabled),
+          inAppAlert: Boolean(notifs.inAppAlert),
+          auditEmailToAdmin: Boolean(notifs.auditEmailToAdmin),
         },
         security: {
           sessionTimeout: Number(security.sessionTimeout),
@@ -208,15 +232,15 @@ export default function AdminSettings() {
       case "notifications":
         return (
           <>
-          
-
             <Field
-              label=" Rapport d'audit"
-              desc="Envoi du rapport à la fin de chaque audit"
+              label="Rapport d'audit"
+              desc="Activation / envoi du rapport à la fin de chaque audit"
             >
               <Toggle
-                value={notifs.inAppAlert}
-                onChange={(v) => setNotifs({ ...notifs, inAppAlert: v })}
+                value={notifs.auditReportEnabled}
+                onChange={(v) =>
+                  setNotifs({ ...notifs, auditReportEnabled: v })
+                }
               />
             </Field>
 
@@ -230,7 +254,17 @@ export default function AdminSettings() {
               />
             </Field>
 
-           
+            <Field
+              label="Email admin après audit"
+              desc="Envoyer un mail à l'admin quand un audit se termine"
+            >
+              <Toggle
+                value={notifs.auditEmailToAdmin}
+                onChange={(v) =>
+                  setNotifs({ ...notifs, auditEmailToAdmin: v })
+                }
+              />
+            </Field>
           </>
         );
 
@@ -271,7 +305,6 @@ export default function AdminSettings() {
                 }
               />
             </Field>
-
           </>
         );
 

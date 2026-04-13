@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { LogOut, ShieldCheck, ShieldAlert, Users, Activity, Bell } from "lucide-react";
 
+const API_BASE =
+  (import.meta?.env?.VITE_API_BASE_URL || "http://localhost:5000") + "/api";
+
 export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
-
-  // ✅ notifications unread
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // ✅ NEW: enable/disable in-app alerts from admin settings
+  const [inAppAlertEnabled, setInAppAlertEnabled] = useState(true);
 
   const me = useMemo(() => {
     try {
@@ -31,7 +35,6 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     return init || (displayEmail.trim()[0]?.toUpperCase() || "AD");
   }, [me, displayEmail]);
 
-  // ✅ plus de badge sur "Audits"
   const menuItems = useMemo(
     () => [
       { key: "dashboard", label: "Dashboard", icon: <ShieldCheck size={16} /> },
@@ -42,35 +45,83 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     []
   );
 
-  // ✅ Fetch notifications periodically
+  // ✅ NEW: fetch admin settings (inAppAlert ON/OFF)
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchSettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await axios.get(`${API_BASE}/admin/settings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (cancelled) return;
+
+        const enabled = res.data?.settings?.notifications?.inAppAlert;
+        setInAppAlertEnabled(typeof enabled === "boolean" ? enabled : true);
+      } catch {
+        // si erreur, on laisse ON par défaut
+        if (!cancelled) setInAppAlertEnabled(true);
+      }
+    };
+
+    fetchSettings();
+    const t = setInterval(fetchSettings, 30000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("http://localhost:5000/api/admin/notifications", {
+        const res = await axios.get(`${API_BASE}/admin/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // si backend renvoie unreadCount
+        if (cancelled) return;
+
         if (typeof res.data?.unreadCount === "number") {
           setUnreadCount(res.data.unreadCount);
           return;
         }
 
-        // fallback: calculer depuis notifications
-        const items = Array.isArray(res.data?.notifications) ? res.data.notifications : [];
+        const items = Array.isArray(res.data?.notifications)
+          ? res.data.notifications
+          : [];
+
         setUnreadCount(items.filter((n) => !n?.read).length);
       } catch {
-        // ne casse pas la sidebar
+        // silence
       }
     };
 
+    // ✅ si alert in-app OFF => badge hidden + stop polling notifications
+    if (!inAppAlertEnabled) {
+      setUnreadCount(0);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     fetchNotifications();
     const t = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(t);
-  }, []);
+
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [inAppAlertEnabled]);
 
   return (
     <aside
@@ -78,7 +129,6 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
         collapsed ? "w-20" : "w-60"
       }`}
     >
-      {/* Toggle button */}
       <div className="flex justify-end p-2">
         <button
           type="button"
@@ -89,7 +139,6 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
         </button>
       </div>
 
-      {/* Menu items */}
       <nav className="mt-4">
         {menuItems.map((item) => (
           <button
@@ -108,7 +157,6 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
         ))}
       </nav>
 
-      {/* Admin profile + alerts + logout */}
       <div
         className={`absolute bottom-0 w-full px-3 py-4 border-t border-gray-200 flex items-center gap-3 ${
           collapsed ? "justify-center" : ""
@@ -123,8 +171,8 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
             <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
             <p className="text-[11px] text-gray-400 truncate">{displayEmail}</p>
 
-            {/* ✅ badge alerts sous le profile */}
-            {unreadCount > 0 && (
+            {/* ✅ badge seulement si inAppAlertEnabled */}
+            {inAppAlertEnabled && unreadCount > 0 && (
               <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 w-fit">
                 <Bell size={12} />
                 {unreadCount} alerte{unreadCount > 1 ? "s" : ""}
@@ -133,14 +181,18 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
           </div>
         )}
 
-        {/* ✅ si sidebar collapsed, on montre juste l’icône + badge en petit */}
-        {collapsed && unreadCount > 0 ? (
+        {/* ✅ collapsed badge seulement si inAppAlertEnabled */}
+        {collapsed && inAppAlertEnabled && unreadCount > 0 ? (
           <div className="absolute bottom-14 right-3 text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
             {unreadCount}
           </div>
         ) : null}
 
-        <button type="button" onClick={onLogout} className="text-gray-300 hover:text-red-500 transition">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="text-gray-300 hover:text-red-500 transition"
+        >
           <LogOut size={15} />
         </button>
       </div>
