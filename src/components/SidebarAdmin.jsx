@@ -1,13 +1,20 @@
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+=======
+import { useMemo, useState } from "react";
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 import { LogOut, ShieldCheck, ShieldAlert, Users, Activity } from "lucide-react";
 
 export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
 
+<<<<<<< HEAD
   // ✅ notifications counter
   const [unreadCount, setUnreadCount] = useState(0);
 
+=======
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   // ---- DYNAMIQUE: lire user depuis localStorage ----
   const me = useMemo(() => {
     try {
@@ -77,10 +84,7 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     >
       {/* Toggle button */}
       <div className="flex justify-end p-2">
-        <button
-          className="text-gray-400 hover:text-gray-800"
-          onClick={() => setCollapsed(!collapsed)}
-        >
+        <button className="text-gray-400 hover:text-gray-800" onClick={() => setCollapsed(!collapsed)}>
           {collapsed ? "→" : "←"}
         </button>
       </div>
@@ -115,6 +119,7 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
 
         {!collapsed && (
           <div className="flex-1 min-w-0">
+<<<<<<< HEAD
             {/* ✅ Alerts badge ABOVE admin name */}
             {unreadCount > 0 ? (
               <div className="mb-1">
@@ -127,6 +132,8 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
               </div>
             ) : null}
 
+=======
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
             <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
             <p className="text-[11px] text-gray-400 truncate">{displayEmail}</p>
           </div>

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+<<<<<<< HEAD
 import { Search, UserPlus, MoreHorizontal, Trash2, Pencil } from "lucide-react";
+=======
+import { Search, UserPlus, MoreHorizontal, Shield, ShieldOff, Trash2 } from "lucide-react";
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 import { getAllUsers, deleteUser as deleteUserApi, updateUser, createUser } from "../services/authService";
 
 const getId = (u) => u?._id || u?.id;
@@ -67,8 +71,13 @@ export default function AdminUsers() {
       setError("");
 
       const data = await getAllUsers();
+
+      // Supporte 2 formats:
+      // - backend minimal: renvoie un tableau direct [...]
+      // - backend paginé: renvoie { users: [...] }
       const list = Array.isArray(data) ? data : data?.users || [];
 
+<<<<<<< HEAD
       // ✅ IMPORTANT: normaliser auditCount en nombre (évite "0" string / undefined)
       const normalized = list.map((u) => ({
         ...u,
@@ -76,6 +85,9 @@ export default function AdminUsers() {
       }));
 
       setUsers(normalized);
+=======
+      setUsers(list);
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || err?.message || "Impossible de charger les utilisateurs");
@@ -92,6 +104,10 @@ export default function AdminUsers() {
   useEffect(() => {
     const onDocClick = (e) => {
       const target = e.target;
+<<<<<<< HEAD
+=======
+      // si click sur un bouton menu, on laisse (sinon on ferme)
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
       if (target?.closest?.("[data-user-menu]")) return;
       setOpenMenu(null);
     };
@@ -124,6 +140,10 @@ export default function AdminUsers() {
       setCreating(true);
       setError("");
 
+<<<<<<< HEAD
+=======
+      // split nom complet -> prenom/nom
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
       const parts = newUser.name.trim().split(/\s+/);
       const prenom = parts[0] || "";
       const nom = parts.slice(1).join(" ") || parts[0] || "";
@@ -133,10 +153,11 @@ export default function AdminUsers() {
         prenom,
         email: newUser.email.trim(),
         role: newUser.role === "Admin" ? "admin" : "user",
-        mdp: "ChangeMe123!",
+        mdp: "ChangeMe123!", // (optionnel) à remplacer par un champ mdp ou envoi email
       });
 
       const createdUser = created?.user || created;
+<<<<<<< HEAD
       const normalizedCreated =
         createdUser && !createdUser._id && createdUser.id ? { ...createdUser, _id: createdUser.id } : createdUser;
 
@@ -146,6 +167,19 @@ export default function AdminUsers() {
       if (createdWithAudit?._id) {
         setUsers((prev) => [createdWithAudit, ...prev]);
       } else {
+=======
+
+      // certains endpoints renvoient {id: ...} au lieu de {_id: ...}
+      const normalizedCreated =
+        createdUser && !createdUser._id && createdUser.id
+          ? { ...createdUser, _id: createdUser.id }
+          : createdUser;
+
+      if (normalizedCreated?._id) {
+        setUsers((prev) => [normalizedCreated, ...prev]);
+      } else {
+        // fallback: re-fetch
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
         await fetchUsers();
       }
 
@@ -169,7 +203,11 @@ export default function AdminUsers() {
 
       await deleteUserApi(id);
 
+<<<<<<< HEAD
       setUsers((prev) => prev.filter((u) => String(getId(u)) !== String(id)));
+=======
+      setUsers((prev) => prev.filter((u) => getId(u) !== id));
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || err?.message || "Suppression impossible");
@@ -179,6 +217,7 @@ export default function AdminUsers() {
     }
   };
 
+<<<<<<< HEAD
   const openEdit = (u) => {
     setError("");
     setEditUser(u);
@@ -232,6 +271,39 @@ export default function AdminUsers() {
       setError(err?.response?.data?.message || err?.message || "Modification impossible");
     } finally {
       setEditing(false);
+=======
+  // Ton backend actuel n'a pas de champ status dans le model User.
+  // Donc ce toggle ne marchera pas vraiment côté DB. Pour "relier" sans casser:
+  // - soit tu ajoutes "status" dans le schema + controller
+  // - soit tu désactives ce bouton
+  const toggleStatus = async (user) => {
+    const id = getId(user);
+    if (!id) return;
+
+    const hasStatusField = Object.prototype.hasOwnProperty.call(user || {}, "status");
+    if (!hasStatusField) {
+      setError("Le statut n'est pas supporté par la base de données (champ 'status' manquant).");
+      setOpenMenu(null);
+      return;
+    }
+
+    const isActive = getStatusLabel(user.status) === "Actif";
+    const nextStatus = isActive ? "suspended" : "active";
+
+    try {
+      setBusy(true);
+      setError("");
+
+      await updateUser(id, { status: nextStatus });
+
+      setUsers((prev) => prev.map((u) => (getId(u) === id ? { ...u, status: nextStatus } : u)));
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || err?.message || "Mise à jour du statut impossible");
+    } finally {
+      setBusy(false);
+      setOpenMenu(null);
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
     }
   };
 
@@ -331,8 +403,13 @@ export default function AdminUsers() {
                   ? new Date(u.createdAt).toLocaleDateString("fr-FR", { month: "short", year: "numeric" })
                   : "-";
 
+<<<<<<< HEAD
                 // ✅ ici on utilise auditCount normalisé
                 const audits = Number(u?.auditCount ?? 0) || 0;
+=======
+                // ton backend ne renvoie pas audits count => 0 par défaut
+                const audits = u?.audits ?? u?.auditCount ?? 0;
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
                 return (
                   <tr key={id} className="hover:bg-gray-50 transition relative">
@@ -360,6 +437,7 @@ export default function AdminUsers() {
                     </td>
 
                     <td className="px-4 py-3 text-gray-700 text-sm">{audits}</td>
+
                     <td className="px-4 py-3 text-gray-400 text-xs">{joinedDate}</td>
 
                     <td className="px-4 py-3 relative" data-user-menu>
@@ -466,6 +544,11 @@ export default function AdminUsers() {
                 {creating ? "Création..." : "Créer"}
               </button>
             </div>
+
+            <p className="text-[11px] text-gray-400 mt-3">
+              Note: le “statut” (Actif/Suspendu) n’est pas stocké en base actuellement. Si tu veux le supporter, il faut
+              ajouter un champ <code>status</code> dans le modèle User + controller.
+            </p>
           </div>
         </div>
       )}

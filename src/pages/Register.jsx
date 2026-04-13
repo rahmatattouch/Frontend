@@ -9,6 +9,11 @@ export default function Register() {
     email: "",
     mdp: "",
     confirmPassword: "",
+<<<<<<< HEAD
+=======
+    // si tu veux ajouter upload image plus tard:
+    // image: null,
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   });
 
   const [error, setError] = useState("");
@@ -20,12 +25,17 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
+<<<<<<< HEAD
+=======
+    // si tu ajoutes un input type="file" name="image"
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
     if (name === "image") {
       setFormData((prev) => ({ ...prev, image: files?.[0] || null }));
       return;
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
+<<<<<<< HEAD
   };
 
   const validate = () => {
@@ -44,18 +54,38 @@ export default function Register() {
     if (!confirm) return "Veuillez confirmer votre mot de passe.";
     if (mdp !== confirm) return "Les mots de passe ne correspondent pas.";
     return "";
+=======
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+<<<<<<< HEAD
     const v = validate();
     if (v) return setError(v);
+=======
+    if (!formData.nom || !formData.prenom || !formData.email || !formData.mdp) {
+      setError("All fields are required");
+      return;
+    }
+
+    if (formData.mdp !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.mdp.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
     setLoading(true);
 
     try {
+<<<<<<< HEAD
       const fd = new FormData();
       fd.append("nom", formData.nom.trim());
       fd.append("prenom", formData.prenom.trim());
@@ -69,6 +99,23 @@ export default function Register() {
         err?.response?.data?.message ||
           "Inscription impossible. Vérifiez vos informations et réessayez."
       );
+=======
+      // ✅ IMPORTANT: envoyer FormData (car backend utilise upload.single("image"))
+      const fd = new FormData();
+      fd.append("nom", formData.nom);
+      fd.append("prenom", formData.prenom);
+      fd.append("email", formData.email);
+      fd.append("mdp", formData.mdp);
+
+      // si tu actives l'upload image:
+      // if (formData.image) fd.append("image", formData.image);
+
+      await register(fd);
+
+      navigate("/login");
+    } catch (err) {
+      setError(err.message || "Registration failed. Please try again.");
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
       console.error("Register error:", err);
     } finally {
       setLoading(false);
@@ -83,9 +130,15 @@ export default function Register() {
           className="hidden md:flex md:w-3/5 flex-col justify-center items-center p-12"
           style={{ backgroundColor: "#10b981", color: "white" }}
         >
+<<<<<<< HEAD
           <h1 className="text-4xl font-bold mb-6">Joindre notre plateforme</h1>
           <p className="mb-8 text-center text-lg">
             Créez un compte et commencez à explorer notre plateforme
+=======
+          <h1 className="text-4xl font-bold mb-6">Join Us</h1>
+          <p className="mb-8 text-center text-lg">
+            Create an account and start exploring our platform
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
           </p>
           <Link
             to="/login"
@@ -159,12 +212,20 @@ export default function Register() {
               className="w-full text-white font-semibold py-3 rounded hover:opacity-90 transition disabled:opacity-50"
               style={{ backgroundColor: "#10b981" }}
             >
+<<<<<<< HEAD
               {loading ? "CREATING ACCOUNT..." : "créér compte"}
+=======
+              {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
             </button>
           </form>
 
           <p className="mt-6 text-center text-gray-600">
+<<<<<<< HEAD
             vous avez déjà un compte ?{" "}
+=======
+            Already have an account?{" "}
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
             <Link to="/login" className="text-[#10b981] font-semibold hover:underline">
               se connecter
             </Link>

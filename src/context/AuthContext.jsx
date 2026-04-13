@@ -1,6 +1,5 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
-import * as authService from "../services/authService"; // ton service axios existant
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import * as authService from "../services/authService";
 
 const AuthContext = createContext(null);
 
@@ -9,15 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Vérifie si l'utilisateur est déjà connecté
+  // Charger session depuis localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
     if (storedToken && storedUser) {
       try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
+        setUser(JSON.parse(storedUser));
         setToken(storedToken);
       } catch {
         localStorage.removeItem("token");
@@ -27,8 +25,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // LOGIN existant
-  const login = async (email, mdp) => {    const response = await authService.login({ email, mdp });
+  const login = async (email, mdp) => {
+    const response = await authService.login({ email, mdp });
     const { token: jwtToken, user: userData } = response.data;
 
     localStorage.setItem("token", jwtToken);
@@ -36,17 +34,17 @@ export const AuthProvider = ({ children }) => {
 
     setToken(jwtToken);
     setUser(userData);
+
     return { token: jwtToken, user: userData };
   };
 
-
-  // LOGOUT existant
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
     setToken(null);
   };
+<<<<<<< HEAD
 const updateUser = (newData) => {
   const updated = { ...user, ...newData };
   localStorage.setItem("user", JSON.stringify(updated));
@@ -72,6 +70,27 @@ const updateUser = (newData) => {
     <AuthContext.Provider
       value={{ user, token, loading, login, logout, isAuthenticated, register,updateUser  }}
     >
+=======
+
+  /**
+   * REGISTER
+   * - accepte un objet JSON {nom, prenom, email, mdp}
+   * - ou un FormData (si tu envoies image)
+   */
+  const register = async (data) => {
+  try {
+    const response = await authService.register(data);
+    return response.data;
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.message || "Registration failed";
+    throw new Error(msg);
+  }
+};
+  const isAuthenticated = useMemo(() => !!token, [token]);
+
+  return (
+    <AuthContext.Provider value={{ user, token, loading, login, logout, isAuthenticated, register }}>
+>>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
       {children}
     </AuthContext.Provider>
   );
