@@ -1,21 +1,13 @@
-<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-=======
-import { useMemo, useState } from "react";
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 import { LogOut, ShieldCheck, ShieldAlert, Users, Activity } from "lucide-react";
 
 export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
 
-<<<<<<< HEAD
-  // ✅ notifications counter
+  // ✅ missing state (sinon crash après merge)
   const [unreadCount, setUnreadCount] = useState(0);
 
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
-  // ---- DYNAMIQUE: lire user depuis localStorage ----
   const me = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -39,12 +31,20 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     return init || (displayEmail.trim()[0]?.toUpperCase() || "AD");
   }, [me, displayEmail]);
 
-  const menuItems = [
-    { key: "dashboard", label: "Dashboard", icon: <ShieldCheck size={16} /> },
-    { key: "users", label: "Utilisateurs", icon: <Users size={16} /> },
-    { key: "audits", label: "Audits", icon: <ShieldAlert size={16} /> },
-    { key: "settings", label: "Paramètres", icon: <Activity size={16} /> },
-  ];
+  const menuItems = useMemo(
+    () => [
+      { key: "dashboard", label: "Dashboard", icon: <ShieldCheck size={16} /> },
+      { key: "users", label: "Utilisateurs", icon: <Users size={16} /> },
+      {
+        key: "audits",
+        label: "Audits",
+        icon: <ShieldAlert size={16} />,
+        badge: unreadCount > 0 ? unreadCount : null,
+      },
+      { key: "settings", label: "Paramètres", icon: <Activity size={16} /> },
+    ],
+    [unreadCount]
+  );
 
   // ✅ Fetch notifications periodically
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
         }
 
         // fallback: calculer depuis notifications
-        const items = res.data?.notifications || [];
+        const items = Array.isArray(res.data?.notifications) ? res.data.notifications : [];
         setUnreadCount(items.filter((n) => !n?.read).length);
       } catch {
         // ne casse pas la sidebar
@@ -72,7 +72,7 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     };
 
     fetchNotifications();
-    const t = setInterval(fetchNotifications, 15000); // refresh toutes les 15s
+    const t = setInterval(fetchNotifications, 15000);
     return () => clearInterval(t);
   }, []);
 
@@ -84,7 +84,11 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
     >
       {/* Toggle button */}
       <div className="flex justify-end p-2">
-        <button className="text-gray-400 hover:text-gray-800" onClick={() => setCollapsed(!collapsed)}>
+        <button
+          type="button"
+          className="text-gray-400 hover:text-gray-800"
+          onClick={() => setCollapsed((v) => !v)}
+        >
           {collapsed ? "→" : "←"}
         </button>
       </div>
@@ -93,6 +97,7 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
       <nav className="mt-4">
         {menuItems.map((item) => (
           <button
+            type="button"
             key={item.key}
             onClick={() => setActivePage(item.key)}
             className={`flex items-center w-full p-3 gap-3 text-sm font-medium hover:bg-gray-100 transition ${
@@ -102,7 +107,18 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
             }`}
           >
             {item.icon}
-            {!collapsed && <span>{item.label}</span>}
+
+            {!collapsed && (
+              <div className="flex items-center justify-between w-full">
+                <span>{item.label}</span>
+
+                {item.badge ? (
+                  <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </div>
+            )}
           </button>
         ))}
       </nav>
@@ -119,27 +135,12 @@ export default function SidebarAdmin({ activePage, setActivePage, onLogout }) {
 
         {!collapsed && (
           <div className="flex-1 min-w-0">
-<<<<<<< HEAD
-            {/* ✅ Alerts badge ABOVE admin name */}
-            {unreadCount > 0 ? (
-              <div className="mb-1">
-                <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  <span className="text-[11px] font-semibold text-red-700">
-                    {unreadCount} alerte{unreadCount > 1 ? "s" : ""}
-                  </span>
-                </span>
-              </div>
-            ) : null}
-
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
             <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
             <p className="text-[11px] text-gray-400 truncate">{displayEmail}</p>
           </div>
         )}
 
-        <button onClick={onLogout} className="text-gray-300 hover:text-red-500 transition">
+        <button type="button" onClick={onLogout} className="text-gray-300 hover:text-red-500 transition">
           <LogOut size={15} />
         </button>
       </div>

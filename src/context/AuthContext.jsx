@@ -44,33 +44,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
   };
-<<<<<<< HEAD
-const updateUser = (newData) => {
-  const updated = { ...user, ...newData };
-  localStorage.setItem("user", JSON.stringify(updated));
-  setUser(updated);
-};
-  // ✅ NOUVEAU : REGISTER
-  const register = async (data) => {
-    try {
-      // data = { nom, prenom, email, mdp }
-      const response = await authService.register(data); // service axios vers /api/register
-      // Si tu veux, tu peux directement connecter l'utilisateur après l'inscription
-      // setUser(response.data.user);
-      return response.data;
-    } catch (err) {
-      throw new Error(err.response?.data?.message || "Registration failed");
-    }
+
+  // ✅ utile pour mettre à jour le user côté UI après modification profil
+  const updateUser = (newData) => {
+    setUser((prev) => {
+      const updated = { ...(prev || {}), ...(newData || {}) };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
   };
-
-
-  const isAuthenticated = !!token;
-
-  return (
-    <AuthContext.Provider
-      value={{ user, token, loading, login, logout, isAuthenticated, register,updateUser  }}
-    >
-=======
 
   /**
    * REGISTER
@@ -78,19 +60,30 @@ const updateUser = (newData) => {
    * - ou un FormData (si tu envoies image)
    */
   const register = async (data) => {
-  try {
-    const response = await authService.register(data);
-    return response.data;
-  } catch (err) {
-    const msg = err?.response?.data?.message || err?.message || "Registration failed";
-    throw new Error(msg);
-  }
-};
+    try {
+      const response = await authService.register(data);
+      return response.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Inscription impossible";
+      throw new Error(msg);
+    }
+  };
+
   const isAuthenticated = useMemo(() => !!token, [token]);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAuthenticated, register }}>
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        logout,
+        register,
+        updateUser,
+        isAuthenticated,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

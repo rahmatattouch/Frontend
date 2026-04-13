@@ -9,11 +9,8 @@ export default function Register() {
     email: "",
     mdp: "",
     confirmPassword: "",
-<<<<<<< HEAD
-=======
     // si tu veux ajouter upload image plus tard:
     // image: null,
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   });
 
   const [error, setError] = useState("");
@@ -25,17 +22,13 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value, files } = e.target;
 
-<<<<<<< HEAD
-=======
     // si tu ajoutes un input type="file" name="image"
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
     if (name === "image") {
       setFormData((prev) => ({ ...prev, image: files?.[0] || null }));
       return;
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
-<<<<<<< HEAD
   };
 
   const validate = () => {
@@ -47,76 +40,47 @@ export default function Register() {
 
     if (!nom) return "Veuillez saisir votre nom.";
     if (!prenom) return "Veuillez saisir votre prénom.";
-    if (!email) return "Veuillez saisir votre adresse e‑mail.";
-    if (!/^\S+@\S+\.\S+$/.test(email)) return "Veuillez saisir une adresse e‑mail valide.";
+    if (!email) return "Veuillez saisir votre adresse e-mail.";
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "Veuillez saisir une adresse e-mail valide.";
     if (!mdp) return "Veuillez choisir un mot de passe.";
     if (mdp.length < 6) return "Le mot de passe doit contenir au moins 6 caractères.";
     if (!confirm) return "Veuillez confirmer votre mot de passe.";
     if (mdp !== confirm) return "Les mots de passe ne correspondent pas.";
     return "";
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-<<<<<<< HEAD
     const v = validate();
-    if (v) return setError(v);
-=======
-    if (!formData.nom || !formData.prenom || !formData.email || !formData.mdp) {
-      setError("All fields are required");
+    if (v) {
+      setError(v);
       return;
     }
-
-    if (formData.mdp !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (formData.mdp.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
     setLoading(true);
 
     try {
-<<<<<<< HEAD
+      // ✅ IMPORTANT: envoyer FormData (si backend utilise upload.single("image"))
       const fd = new FormData();
       fd.append("nom", formData.nom.trim());
       fd.append("prenom", formData.prenom.trim());
       fd.append("email", formData.email.trim());
       fd.append("mdp", formData.mdp);
 
-      await register(fd);
-      navigate("/login");
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          "Inscription impossible. Vérifiez vos informations et réessayez."
-      );
-=======
-      // ✅ IMPORTANT: envoyer FormData (car backend utilise upload.single("image"))
-      const fd = new FormData();
-      fd.append("nom", formData.nom);
-      fd.append("prenom", formData.prenom);
-      fd.append("email", formData.email);
-      fd.append("mdp", formData.mdp);
-
       // si tu actives l'upload image:
       // if (formData.image) fd.append("image", formData.image);
 
       await register(fd);
-
       navigate("/login");
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
       console.error("Register error:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Inscription impossible. Vérifiez vos informations et réessayez."
+      );
     } finally {
       setLoading(false);
     }
@@ -130,15 +94,9 @@ export default function Register() {
           className="hidden md:flex md:w-3/5 flex-col justify-center items-center p-12"
           style={{ backgroundColor: "#10b981", color: "white" }}
         >
-<<<<<<< HEAD
           <h1 className="text-4xl font-bold mb-6">Joindre notre plateforme</h1>
           <p className="mb-8 text-center text-lg">
             Créez un compte et commencez à explorer notre plateforme
-=======
-          <h1 className="text-4xl font-bold mb-6">Join Us</h1>
-          <p className="mb-8 text-center text-lg">
-            Create an account and start exploring our platform
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
           </p>
           <Link
             to="/login"
@@ -150,7 +108,7 @@ export default function Register() {
 
         {/* Register Section */}
         <div className="w-full md:w-2/5 bg-white p-10 md:p-16 flex flex-col justify-center">
-          <h2 className="text-3xl font-bold mb-6 text-gray-800">Créer un Compte</h2>
+          <h2 className="text-3xl font-bold mb-6 text-gray-800">Créer un compte</h2>
 
           {error && (
             <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4">
@@ -159,7 +117,6 @@ export default function Register() {
           )}
 
           <form noValidate onSubmit={handleSubmit} className="space-y-4">
-            {/* ✅ Fix: grid responsive + min-w-0 to prevent clipping */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
@@ -191,7 +148,7 @@ export default function Register() {
             <input
               type="password"
               name="mdp"
-              placeholder="Password"
+              placeholder="Mot de passe"
               value={formData.mdp}
               onChange={handleChange}
               className="w-full px-5 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981]"
@@ -200,7 +157,7 @@ export default function Register() {
             <input
               type="password"
               name="confirmPassword"
-              placeholder="Confirm Password"
+              placeholder="Confirmer le mot de passe"
               value={formData.confirmPassword}
               onChange={handleChange}
               className="w-full px-5 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-[#10b981]"
@@ -212,22 +169,14 @@ export default function Register() {
               className="w-full text-white font-semibold py-3 rounded hover:opacity-90 transition disabled:opacity-50"
               style={{ backgroundColor: "#10b981" }}
             >
-<<<<<<< HEAD
-              {loading ? "CREATING ACCOUNT..." : "créér compte"}
-=======
-              {loading ? "CREATING ACCOUNT..." : "CREATE ACCOUNT"}
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
+              {loading ? "CRÉATION..." : "CRÉER UN COMPTE"}
             </button>
           </form>
 
           <p className="mt-6 text-center text-gray-600">
-<<<<<<< HEAD
-            vous avez déjà un compte ?{" "}
-=======
-            Already have an account?{" "}
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
+            Vous avez déjà un compte ?{" "}
             <Link to="/login" className="text-[#10b981] font-semibold hover:underline">
-              se connecter
+              Se connecter
             </Link>
           </p>
         </div>

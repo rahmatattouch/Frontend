@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, ExternalLink, ChevronRight, Filter } from "lucide-react";
-<<<<<<< HEAD
 import { getAllAuditsAdmin, getAdminAuditReport } from "../services/authService";
-=======
-import { getAllAuditsAdmin } from "../services/authService";
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
 const normalizeRiskLabel = (risk) => {
   const r = (risk ?? "").toString().trim().toLowerCase();
@@ -34,7 +30,6 @@ const scoreColor = (s) => {
   const x = normalizeScore(s);
   return x >= 75 ? "#16a34a" : x >= 50 ? "#eab308" : "#ef4444";
 };
-<<<<<<< HEAD
 
 const toYYYYMMDD = (d) => {
   if (!d) return "—";
@@ -43,15 +38,7 @@ const toYYYYMMDD = (d) => {
   return dt.toISOString().slice(0, 10);
 };
 
-/**
- * ✅ Same PDF design (HTML -> print)
- * results expected:
- * { url, score, ssl, sslExpiry, redirect, server,
- *   headers: [{name,present,critical}],
- *   vulns: [{id,severity,title,description,fix}],
- *   recommendations: [string]
- * }
- */
+// --- Ton PDF generator (inchangé) ---
 function generatePDF(url, results) {
   const date = new Date().toLocaleDateString("fr-FR", {
     day: "2-digit",
@@ -184,8 +171,6 @@ function generatePDF(url, results) {
   win.focus();
   setTimeout(() => win.print(), 400);
 }
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
 export default function AdminAudits() {
   const [audits, setAudits] = useState([]);
@@ -196,11 +181,8 @@ export default function AdminAudits() {
   const [filterRisk, setFilterRisk] = useState("Tous");
   const [selected, setSelected] = useState(null);
 
-<<<<<<< HEAD
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
   const fetchAudits = async () => {
     try {
       setLoading(true);
@@ -209,7 +191,6 @@ export default function AdminAudits() {
       const data = await getAllAuditsAdmin();
       const list = Array.isArray(data) ? data : data?.audits || [];
 
-<<<<<<< HEAD
       const normalized = list.map((a) => {
         const auditId = a?._id || a?.id || a?.auditId;
         const url = a?.urlCible || a?.site || a?.targetUrl || "—";
@@ -250,22 +231,6 @@ export default function AdminAudits() {
           user: a?.user?.email || a?.user?.nom || "—",
         };
       });
-=======
-      // normalisation côté front (sécurité)
-      const normalized = list.map((a) => ({
-        ...a,
-        id: a.id || a._id || a.auditId,
-        site: a.site || a.urlCible || "—",
-        score: normalizeScore(a.score),
-        risk: normalizeRiskLabel(a.risk),
-        ssl: typeof a.ssl === "boolean" ? a.ssl : /^https:\/\//i.test(String(a.site || "")),
-        vulns: Number(a.vulns ?? 0) || 0,
-        headers: Number(a.headers ?? 0) || 0,
-        status: a.status || a.statut || "—",
-        date: a.date || "—",
-        user: a.user || "—",
-      }));
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
       setAudits(normalized);
     } catch (err) {
@@ -292,10 +257,7 @@ export default function AdminAudits() {
       return matchSearch && matchRisk;
     });
   }, [audits, search, filterRisk]);
-<<<<<<< HEAD
 
-  // ✅ FIX: utilise le service + endpoint admin
-  // GET /api/users/admin/audits/:id/report
   const downloadPdfSameDesign = async (auditId) => {
     try {
       setDownloadingPdf(true);
@@ -310,8 +272,6 @@ export default function AdminAudits() {
       setDownloadingPdf(false);
     }
   };
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
 
   return (
     <div className="p-6 space-y-6 relative">
@@ -321,6 +281,7 @@ export default function AdminAudits() {
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
       </div>
 
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -346,10 +307,7 @@ export default function AdminAudits() {
             {r}
           </button>
         ))}
-<<<<<<< HEAD
 
-=======
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
         <button
           onClick={fetchAudits}
           className="text-xs px-3 py-1.5 rounded-lg border transition border-gray-200 text-gray-500 hover:text-gray-700 bg-white"
@@ -358,6 +316,7 @@ export default function AdminAudits() {
         </button>
       </div>
 
+      {/* Table */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
         {loading ? (
           <div className="text-center py-12 text-gray-400 text-sm">Chargement...</div>
@@ -379,20 +338,15 @@ export default function AdminAudits() {
 
             <tbody className="divide-y divide-gray-50">
               {filtered.map((a) => (
-<<<<<<< HEAD
-                <tr key={a.id} className="hover:bg-gray-50 cursor-pointer transition" onClick={() => setSelected(a)}>
-=======
                 <tr
                   key={a.id}
                   className="hover:bg-gray-50 cursor-pointer transition"
                   onClick={() => setSelected(a)}
                 >
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
                   <td className="px-4 py-3 text-xs text-gray-400 font-mono">{String(a.id).slice(-8)}</td>
                   <td className="px-4 py-3 text-gray-900 font-medium">{a.site}</td>
 
                   <td className="px-4 py-3">
-<<<<<<< HEAD
                     <svg width="36" height="36" viewBox="0 0 36 36">
                       <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                       <circle
@@ -406,31 +360,17 @@ export default function AdminAudits() {
                         strokeLinecap="round"
                         transform="rotate(-90 18 18)"
                       />
-                      <text x="18" y="22" textAnchor="middle" fontSize="9" fill={scoreColor(a.score)} fontWeight="600">
+                      <text
+                        x="18"
+                        y="22"
+                        textAnchor="middle"
+                        fontSize="9"
+                        fill={scoreColor(a.score)}
+                        fontWeight="600"
+                      >
                         {a.score}
                       </text>
                     </svg>
-=======
-                    <div className="flex items-center gap-2">
-                      <svg width="36" height="36" viewBox="0 0 36 36">
-                        <circle cx="18" cy="18" r="15" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="15"
-                          fill="none"
-                          stroke={scoreColor(a.score)}
-                          strokeWidth="3"
-                          strokeDasharray={`${(a.score / 100) * 94} 94`}
-                          strokeLinecap="round"
-                          transform="rotate(-90 18 18)"
-                        />
-                        <text x="18" y="22" textAnchor="middle" fontSize="9" fill={scoreColor(a.score)} fontWeight="600">
-                          {a.score}
-                        </text>
-                      </svg>
-                    </div>
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
                   </td>
 
                   <td className="px-4 py-3">
@@ -478,6 +418,7 @@ export default function AdminAudits() {
         )}
       </div>
 
+      {/* Detail panel */}
       {selected && (
         <div className="fixed inset-y-0 right-0 w-80 bg-white border-l border-gray-200 z-40 overflow-y-auto shadow-xl">
           <div className="p-5 space-y-5">
@@ -502,7 +443,14 @@ export default function AdminAudits() {
                   strokeLinecap="round"
                   transform="rotate(-90 40 40)"
                 />
-                <text x="40" y="46" textAnchor="middle" fontSize="20" fill={scoreColor(selected.score)} fontWeight="700">
+                <text
+                  x="40"
+                  y="46"
+                  textAnchor="middle"
+                  fontSize="20"
+                  fill={scoreColor(selected.score)}
+                  fontWeight="700"
+                >
                   {selected.score}
                 </text>
               </svg>
@@ -518,7 +466,12 @@ export default function AdminAudits() {
                     {selected.risk}
                   </span>,
                 ],
-                ["SSL/HTTPS", <span className={selected.ssl ? "text-green-600 text-xs" : "text-red-500 text-xs"}>{selected.ssl ? "✓ Activé" : "✗ Absent"}</span>],
+                [
+                  "SSL/HTTPS",
+                  <span className={selected.ssl ? "text-green-600 text-xs" : "text-red-500 text-xs"}>
+                    {selected.ssl ? "✓ Activé" : "✗ Absent"}
+                  </span>,
+                ],
                 ["En-têtes analysés", <span className="text-gray-700 text-xs">{selected.headers}/10</span>],
                 ["Vulnérabilités", <span className="text-red-500 font-semibold text-xs">{selected.vulns}</span>],
                 ["Analyste", <span className="text-gray-700 text-xs">{selected.user}</span>],
@@ -531,15 +484,11 @@ export default function AdminAudits() {
               ))}
             </div>
 
-<<<<<<< HEAD
             <button
               disabled={downloadingPdf}
               onClick={() => downloadPdfSameDesign(selected.auditId)}
               className="w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-500 text-xs py-2.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-60"
             >
-=======
-            <button className="w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-500 text-xs py-2.5 rounded-lg hover:bg-gray-50 transition">
->>>>>>> 1ae9dce91a9113572736dee6eba824c2900b2b0a
               <ExternalLink size={13} />
               {downloadingPdf ? "Préparation..." : "Télécharger le rapport PDF"}
             </button>

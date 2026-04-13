@@ -52,7 +52,6 @@ export default function AdminDashboard() {
     return s >= 75 ? "#16a34a" : s >= 50 ? "#eab308" : "#ef4444";
   };
 
-  // ✅ AJOUT MINIMAL: ton code l'utilise dans setRecentAudits
   const toYYYYMMDD = (d) => {
     if (!d) return "—";
     const dt = new Date(d);
@@ -171,21 +170,23 @@ export default function AdminDashboard() {
           .filter((x) => x.value > 0);
 
         const totalPie = pie.reduce((s, x) => s + x.value, 0) || 1;
-        const piePct = pie.map((x) => ({ ...x, value: Math.round((x.value / totalPie) * 100) }));
+
+        // ✅ IMPORTANT: garder la couleur après conversion en %
+        const piePct = pie.map((x) => ({
+          ...x,
+          value: Math.round((x.value / totalPie) * 100),
+        }));
+
         setPieData(piePct);
 
-        // ✅ CORRECTION UNIQUEMENT ICI: recent audits robustes (site/score/risk/status/date)
-        // - Ne dépend pas de "helpers" backend
-        // - Supporte les variations: site/urlCible, status/statut, score/scoreGlobal/rapport.scoreGlobal
         const recent = Array.isArray(data.recentAudits) ? data.recentAudits : [];
         setRecentAudits(
           recent.map((a) => {
             const site = a?.site || a?.urlCible || a?.targetUrl || "—";
             const rawScore = a?.score ?? a?.scoreGlobal ?? a?.rapport?.scoreGlobal ?? 0;
-            const risk = normalizeRiskLabel(a?.risk); // si backend le calcule => parfait, sinon "Inconnu"
+            const risk = normalizeRiskLabel(a?.risk);
             const status = a?.status || a?.statut || "—";
             const date = a?.date ? toYYYYMMDD(a.date) : "—";
-
             return { ...a, site, score: normalizeScore(rawScore), risk, status, date };
           })
         );
@@ -290,7 +291,14 @@ export default function AdminDashboard() {
                     <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type="monotone" dataKey="audits" stroke="#16a34a" strokeWidth={2} dot={false} name="Audits" />
-                    <Line type="monotone" dataKey="vulns" stroke="#ef4444" strokeWidth={2} dot={false} name="Vulnérabilités" />
+                    <Line
+                      type="monotone"
+                      dataKey="vulns"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Vulnérabilités"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -302,7 +310,7 @@ export default function AdminDashboard() {
                 <PieChart width={150} height={150}>
                   <Pie data={pieData} cx={70} cy={70} innerRadius={45} outerRadius={68} dataKey="value" stroke="none">
                     {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
+                      <Cell key={i} fill={entry.color || "#9ca3af"} />
                     ))}
                   </Pie>
                 </PieChart>
@@ -310,7 +318,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2 w-full">
                   {pieData.map((d) => (
                     <div key={d.name} className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color || "#9ca3af" }} />
                       <span className="text-xs text-gray-500">{d.name}</span>
                       <span className="text-xs text-gray-400 ml-auto">{d.value}%</span>
                     </div>
@@ -386,7 +394,6 @@ export default function AdminDashboard() {
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm font-medium text-gray-900">Derniers audits</p>
-                  {/* ✅ on laisse ton comportement, juste une vraie navigation */}
                   <Link className="text-xs text-green-600 hover:underline" to="/AdminAudits">
                     Voir tout →
                   </Link>
@@ -411,22 +418,14 @@ export default function AdminDashboard() {
                         <td className="py-2.5">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${a.score}%`,
-                                  background: scoreColor(a.score),
-                                }}
-                              />
+                              <div className="h-full rounded-full" style={{ width: `${a.score}%`, background: scoreColor(a.score) }} />
                             </div>
                             <span className="text-gray-600">{a.score}</span>
                           </div>
                         </td>
 
                         <td className="py-2.5">
-                          <span className={`px-2 py-0.5 rounded-md border text-[11px] ${riskBadge(a.risk)}`}>
-                            {a.risk}
-                          </span>
+                          <span className={`px-2 py-0.5 rounded-md border text-[11px] ${riskBadge(a.risk)}`}>{a.risk}</span>
                         </td>
 
                         <td className="py-2.5">
